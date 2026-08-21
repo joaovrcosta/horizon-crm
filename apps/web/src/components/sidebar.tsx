@@ -1,0 +1,168 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/components/auth-provider";
+import { useTheme } from "@/components/theme-provider";
+import {
+  IconChevronLeft,
+  IconChevronRight,
+  IconDashboard,
+  IconLogout,
+  IconMoon,
+  IconPipeline,
+  IconPrompt,
+  IconProspects,
+  IconSettings,
+  IconSun,
+  IconUsers,
+} from "@/components/icons";
+
+const NAV = [
+  { href: "/", label: "Dashboard", icon: IconDashboard, exact: true },
+  { href: "/prospects", label: "Prospects", icon: IconProspects },
+  { href: "/pipeline", label: "Funil", icon: IconPipeline },
+  { href: "/prompts", label: "Prompts", icon: IconPrompt },
+  { href: "/settings", label: "Configurações", icon: IconSettings },
+] as const;
+
+const STORAGE_KEY = "horizon-sidebar-collapsed";
+
+export function Sidebar() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    try {
+      setCollapsed(localStorage.getItem(STORAGE_KEY) === "1");
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  function toggleCollapsed() {
+    setCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }
+
+  async function handleLogout() {
+    await logout();
+    router.replace("/login");
+  }
+
+  return (
+    <aside className={`sidebar${collapsed ? " collapsed" : ""}`}>
+      <div className="sidebar-brand-row">
+        <div className="sidebar-brand" title="Horizon">
+          {collapsed ? (
+            <>
+              h<span>.</span>
+            </>
+          ) : (
+            <>
+              horizon<span>.</span>
+            </>
+          )}
+        </div>
+        <button
+          type="button"
+          className="sidebar-collapse-btn"
+          onClick={toggleCollapsed}
+          aria-label={collapsed ? "Expandir menu" : "Minimizar menu"}
+          title={collapsed ? "Expandir menu" : "Minimizar menu"}
+        >
+          {collapsed ? (
+            <IconChevronRight size={16} />
+          ) : (
+            <IconChevronLeft size={16} />
+          )}
+        </button>
+      </div>
+
+      <nav className="sidebar-nav">
+        {NAV.map((item) => {
+          const active =
+            "exact" in item && item.exact
+              ? pathname === item.href
+              : pathname.startsWith(item.href);
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`nav-item${active ? " active" : ""}`}
+              title={item.label}
+            >
+              <span className="nav-icon">
+                <Icon size={16} />
+              </span>
+              <span className="nav-label">{item.label}</span>
+            </Link>
+          );
+        })}
+
+        {user?.role === "ADMIN" && (
+          <Link
+            href="/users"
+            className={`nav-item${pathname.startsWith("/users") ? " active" : ""}`}
+            title="Usuários"
+          >
+            <span className="nav-icon">
+              <IconUsers size={16} />
+            </span>
+            <span className="nav-label">Usuários</span>
+          </Link>
+        )}
+      </nav>
+
+      <div className="sidebar-footer">
+        <button
+          type="button"
+          className="nav-item theme-toggle"
+          onClick={toggleTheme}
+          aria-label={
+            theme === "dark" ? "Ativar tema claro" : "Ativar tema escuro"
+          }
+          title={theme === "dark" ? "Tema claro" : "Tema escuro"}
+        >
+          <span className="nav-icon">
+            {theme === "dark" ? <IconSun size={16} /> : <IconMoon size={16} />}
+          </span>
+          <span className="nav-label">
+            {theme === "dark" ? "Tema claro" : "Tema escuro"}
+          </span>
+        </button>
+
+        <div className="user-card">
+          <div className="avatar" aria-hidden title={user?.name}>
+            {(user?.name ?? "?").slice(0, 1).toUpperCase()}
+          </div>
+          <div className="user-meta">
+            <strong>{user?.name}</strong>
+            <span>{user?.email}</span>
+          </div>
+          <button
+            type="button"
+            className="logout-btn"
+            onClick={handleLogout}
+            title="Sair"
+            aria-label="Sair"
+          >
+            <IconLogout size={16} />
+          </button>
+        </div>
+      </div>
+    </aside>
+  );
+}

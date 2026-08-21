@@ -1,0 +1,31 @@
+{
+  "name": "horizon-management",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "postinstall": "npm run build -w @horizon/shared",
+    "dev": "npm run build -w @horizon/shared && concurrently -n shared,api,web -c magenta,blue,green \"npm run dev -w @horizon/shared\" \"npm run dev -w @horizon/api\" \"npm run dev -w @horizon/web\"",
+    "dev:api": "npm run build -w @horizon/shared && concurrently -n shared,api -c magenta,blue \"npm run dev -w @horizon/shared\" \"npm run dev -w @horizon/api\"",
+    "dev:web": "npm run build -w @horizon/shared && concurrently -n shared,web -c magenta,green \"npm run dev -w @horizon/shared\" \"npm run dev -w @horizon/web\"",
+    "build": "npm run build -w @horizon/shared && npm run build -w @horizon/api && npm run build -w @horizon/web",
+    "build:api": "npm run build -w @horizon/shared && npm run build -w @horizon/api",
+    "build:web": "npm run build -w @horizon/shared && npm run build -w @horizon/web",
+    "start:api": "npm run start -w @horizon/api",
+    "start:web": "npm run start -w @horizon/web",
+    "lint": "npm run lint --workspaces --if-present",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:migrate": "npm run prisma:migrate -w @horizon/api",
+    "db:seed": "npm run prisma:seed -w @horizon/api",
+    "db:setup": "npm run db:up && npm run db:migrate && npm run db:seed"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}

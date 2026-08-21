@@ -1,0 +1,289 @@
+"use client";
+
+import { FormEvent, useEffect, useState } from "react";
+import type { EmailSignature } from "@horizon/shared";
+import { DEFAULT_EMAIL_LOGO_URL } from "@horizon/shared";
+import { useAuth } from "@/components/auth-provider";
+import { EmailSignaturePreview } from "@/components/email-signature-preview";
+import { apiFetch } from "@/lib/api-client";
+
+type FormState = {
+  enabled: boolean;
+  displayName: string;
+  title: string;
+  phone: string;
+  logoUrl: string;
+  company: string;
+  tagline: string;
+  addressLine1: string;
+  addressLine2: string;
+  website: string;
+  defaultIntro: string;
+};
+
+const emptyForm = (name = ""): FormState => ({
+  enabled: true,
+  displayName: name,
+  title: "",
+  phone: "",
+  logoUrl: DEFAULT_EMAIL_LOGO_URL,
+  company: "halk.",
+  tagline: "",
+  addressLine1: "",
+  addressLine2: "",
+  website: "",
+  defaultIntro: "",
+});
+
+function toForm(sig: EmailSignature, fallbackName: string): FormState {
+  return {
+    enabled: sig.enabled,
+    displayName: sig.displayName ?? fallbackName,
+    title: sig.title ?? "",
+    phone: sig.phone ?? "",
+    logoUrl: sig.logoUrl ?? DEFAULT_EMAIL_LOGO_URL,
+    company: sig.company ?? "",
+    tagline: sig.tagline ?? "",
+    addressLine1: sig.addressLine1 ?? "",
+    addressLine2: sig.addressLine2 ?? "",
+    website: sig.website ?? "",
+    defaultIntro: sig.defaultIntro ?? "",
+  };
+}
+
+export default function SettingsPage() {
+  const { user } = useAuth();
+  const [form, setForm] = useState<FormState>(emptyForm(user?.name ?? ""));
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  async function load() {
+    setLoading(true);
+    setError("");
+    try {
+      const data = await apiFetch<EmailSignature>("/settings/email-signature");
+      setForm(toForm(data, user?.name ?? ""));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao carregar");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function save(event: FormEvent) {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    setSaved(false);
+    try {
+      const data = await apiFetch<EmailSignature>("/settings/email-signature", {
+        method: "PUT",
+        body: {
+          enabled: form.enabled,
+          displayName: form.displayName || null,
+          title: form.title || null,
+          phone: form.phone || null,
+          logoUrl: form.logoUrl || null,
+          company: form.company || null,
+          tagline: form.tagline || null,
+          addressLine1: form.addressLine1 || null,
+          addressLine2: form.addressLine2 || null,
+          website: form.website || null,
+          defaultIntro: form.defaultIntro || null,
+        },
+      });
+      setForm(toForm(data, user?.name ?? ""));
+      setSaved(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao salvar");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const previewSig: EmailSignature = {
+    id: "preview",
+    userId: user?.id ?? "",
+    enabled: form.enabled,
+    displayName: form.displayName || null,
+    title: form.title || null,
+    phone: form.phone || null,
+    logoUrl: form.logoUrl || null,
+    company: form.company || null,
+    tagline: form.tagline || null,
+    addressLine1: form.addressLine1 || null,
+    addressLine2: form.addressLine2 || null,
+    website: form.website || null,
+    defaultIntro: form.defaultIntro || null,
+    updatedAt: new Date().toISOString(),
+  };
+
+  return (
+    <div className="page-wrap">
+      <header className="page-header">
+        <div>
+          <h1>Configurações</h1>
+          <p>Assinatura e corpo padrão dos e-mails de prospecção (React Email).</p>
+        </div>
+      </header>
+
+      {loading ? <p>Carregando…</p> : null}
+      {error ? <p className="form-error">{error}</p> : null}
+
+      {!loading ? (
+        <form className="settings-layout" onSubmit={save}>
+          <section className="panel">
+            <h2>Assinatura de e-mail</h2>
+            <p className="panel-desc">
+              Template feito com React Email (HTML de e-mail com estilos
+              inline). Ajuste os campos e veja a prévia ao lado. Ao enviar, a
+              assinatura rica é copiada para colar no Gmail/Outlook (Ctrl+V).
+            </p>
+
+            <label className="checkbox-row">
+              <input
+                type="checkbox"
+                checked={form.enabled}
+                onChange={(e) =>
+                  setForm({ ...form, enabled: e.target.checked })
+                }
+              />
+              Incluir assinatura por padrão
+            </label>
+
+            <div className="form-grid form-grid-2">
+              <label>
+                Nome
+                <input
+                  value={form.displayName}
+                  onChange={(e) =>
+                    setForm({ ...form, displayName: e.target.value })
+                  }
+                  placeholder={user?.name}
+                />
+              </label>
+              <label>
+                Cargo / título
+                <input
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  placeholder="Founder & Creative Developer"
+                />
+              </label>
+              <label>
+                Telefone
+                <input
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  placeholder="(+55 11) 99999-0000"
+                />
+              </label>
+              <label>
+                Website
+                <input
+                  value={form.website}
+                  onChange={(e) =>
+                    setForm({ ...form, website: e.target.value })
+                  }
+                  placeholder="halk.studio"
+                />
+              </label>
+              <label className="span-2">
+                URL do logo
+                <input
+                  value={form.logoUrl}
+                  onChange={(e) =>
+                    setForm({ ...form, logoUrl: e.target.value })
+                  }
+                  placeholder={DEFAULT_EMAIL_LOGO_URL}
+                />
+              </label>
+              <label>
+                Empresa
+                <input
+                  value={form.company}
+                  onChange={(e) =>
+                    setForm({ ...form, company: e.target.value })
+                  }
+                  placeholder="halk."
+                />
+              </label>
+              <label>
+                Tagline
+                <input
+                  value={form.tagline}
+                  onChange={(e) =>
+                    setForm({ ...form, tagline: e.target.value })
+                  }
+                  placeholder="Agência de experiências digitais"
+                />
+              </label>
+              <label>
+                Endereço (linha 1)
+                <input
+                  value={form.addressLine1}
+                  onChange={(e) =>
+                    setForm({ ...form, addressLine1: e.target.value })
+                  }
+                />
+              </label>
+              <label>
+                Endereço (linha 2)
+                <input
+                  value={form.addressLine2}
+                  onChange={(e) =>
+                    setForm({ ...form, addressLine2: e.target.value })
+                  }
+                />
+              </label>
+              <label className="span-2">
+                Corpo padrão (introdução)
+                <textarea
+                  rows={5}
+                  value={form.defaultIntro}
+                  onChange={(e) =>
+                    setForm({ ...form, defaultIntro: e.target.value })
+                  }
+                  placeholder={
+                    "Olá {{nome}},\n\nTudo bem? Gostaria de apresentar a halk.…"
+                  }
+                />
+              </label>
+            </div>
+
+            <p className="field-hint">
+              No corpo padrão você pode usar {"{{nome}}"}, {"{{email}}"},{" "}
+              {"{{telefone}}"}, etc. O logo padrão é a imagem pública da halk.
+              no GitHub — use sempre uma URL https acessível (não localhost).
+            </p>
+
+            <div className="modal-actions" style={{ justifyContent: "flex-start" }}>
+              <button className="btn btn-primary" disabled={saving}>
+                {saving ? "Salvando…" : "Salvar assinatura"}
+              </button>
+              {saved ? (
+                <span className="save-ok">Salvo.</span>
+              ) : null}
+            </div>
+          </section>
+
+          <section className="panel">
+            <h2>Prévia</h2>
+            <EmailSignaturePreview
+              signature={previewSig}
+              fallbackName={user?.name}
+              intro={form.defaultIntro}
+            />
+          </section>
+        </form>
+      ) : null}
+    </div>
+  );
+}
