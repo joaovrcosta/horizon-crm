@@ -1,3 +1,6 @@
+-- Free the "Role" type name (old enum conflicts with new table name)
+ALTER TYPE "Role" RENAME TO "UserRole_old";
+
 -- CreateTable
 CREATE TABLE "Role" (
     "id" TEXT NOT NULL,
@@ -37,9 +40,7 @@ INSERT INTO "Permission" ("id", "key", "description") VALUES
   ('perm_users_create', 'users:create', 'Criar usuários'),
   ('perm_users_update', 'users:update', 'Atualizar usuários'),
   ('perm_users_delete', 'users:delete', 'Remover usuários'),
-  ('perm_users_manage_roles', 'users:manage_roles', 'Alterar papéis de usuários'),
-  ('perm_prompts_manage_all', 'prompts:manage_all', 'Gerenciar todos os prompts'),
-  ('perm_roles_read', 'roles:read', 'Listar papéis');
+  ('perm_prompts_manage_all', 'prompts:manage_all', 'Gerenciar todos os prompts');
 
 -- ADMIN permissions
 INSERT INTO "RolePermission" ("roleId", "permissionId") VALUES
@@ -47,25 +48,23 @@ INSERT INTO "RolePermission" ("roleId", "permissionId") VALUES
   ('role_admin', 'perm_users_create'),
   ('role_admin', 'perm_users_update'),
   ('role_admin', 'perm_users_delete'),
-  ('role_admin', 'perm_users_manage_roles'),
-  ('role_admin', 'perm_prompts_manage_all'),
-  ('role_admin', 'perm_roles_read');
+  ('role_admin', 'perm_prompts_manage_all');
 
 -- Add roleId column (nullable during migration)
 ALTER TABLE "User" ADD COLUMN "roleId" TEXT;
 
--- Migrate existing users
-UPDATE "User" SET "roleId" = 'role_admin' WHERE "role" = 'ADMIN';
-UPDATE "User" SET "roleId" = 'role_member' WHERE "role" = 'MEMBER';
+-- Migrate existing users from renamed enum column
+UPDATE "User" SET "roleId" = 'role_admin' WHERE "role"::text = 'ADMIN';
+UPDATE "User" SET "roleId" = 'role_member' WHERE "role"::text = 'MEMBER';
 
 -- Default any remaining users to MEMBER
 UPDATE "User" SET "roleId" = 'role_member' WHERE "roleId" IS NULL;
 
--- Drop old role column and enum
+-- Drop old role column and renamed enum
 ALTER TABLE "User" DROP COLUMN "role";
-DROP TYPE "Role";
+DROP TYPE "UserRole_old";
 
--- Make roleId required and add FK
+-- Make roleId required
 ALTER TABLE "User" ALTER COLUMN "roleId" SET NOT NULL;
 
 -- CreateIndex
