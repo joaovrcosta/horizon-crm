@@ -8,7 +8,7 @@ import { apiFetch } from "@/lib/api-client";
 import { IconPlus, IconTrash } from "@/components/icons";
 
 export default function UsersPage() {
-  const { user } = useAuth();
+  const { user, can } = useAuth();
   const router = useRouter();
   const [users, setUsers] = useState<UserPublic[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,21 +19,20 @@ export default function UsersPage() {
     name: "",
     email: "",
     password: "",
-    role: "MEMBER" as "ADMIN" | "MEMBER",
   });
 
   useEffect(() => {
-    if (user && user.role !== "ADMIN") {
+    if (user && !can("users:read")) {
       router.replace("/prospects");
     }
-  }, [user, router]);
+  }, [user, can, router]);
 
   async function load() {
     setLoading(true);
     setError("");
     try {
-      const data = await apiFetch<UserPublic[]>("/users");
-      setUsers(data);
+      const usersData = await apiFetch<UserPublic[]>("/users");
+      setUsers(usersData);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao carregar");
     } finally {
@@ -42,10 +41,10 @@ export default function UsersPage() {
   }
 
   useEffect(() => {
-    if (user?.role === "ADMIN") {
+    if (can("users:read")) {
       void load();
     }
-  }, [user]);
+  }, [user, can]);
 
   async function createUser(event: FormEvent) {
     event.preventDefault();
@@ -57,7 +56,7 @@ export default function UsersPage() {
       });
       setUsers((prev) => [created, ...prev]);
       setShowModal(false);
-      setForm({ name: "", email: "", password: "", role: "MEMBER" });
+      setForm({ name: "", email: "", password: "" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao criar usuário");
     } finally {
@@ -75,7 +74,7 @@ export default function UsersPage() {
     }
   }
 
-  if (user?.role !== "ADMIN") {
+  if (!can("users:read")) {
     return null;
   }
 
@@ -83,10 +82,12 @@ export default function UsersPage() {
     <div className="users-page">
       <div className="page-header">
         <h1>Usuários</h1>
-        <button className="btn btn-primary" type="button" onClick={() => setShowModal(true)}>
-          <IconPlus size={16} />
-          Criar usuário
-        </button>
+        {can("users:create") ? (
+          <button className="btn btn-primary" type="button" onClick={() => setShowModal(true)}>
+            <IconPlus size={16} />
+            Criar usuário
+          </button>
+        ) : null}
       </div>
 
       {error ? <p style={{ color: "#b91c1c" }}>{error}</p> : null}
@@ -107,10 +108,10 @@ export default function UsersPage() {
             <tr key={u.id}>
               <td>{u.name}</td>
               <td>{u.email}</td>
-              <td>{u.role}</td>
+              <td>{u.role.name}</td>
               <td>{new Date(u.createdAt).toLocaleDateString("pt-BR")}</td>
               <td>
-                {u.id !== user.id ? (
+                {can("users:delete") && u.id !== user?.id ? (
                   <button
                     className="btn btn-danger"
                     type="button"
@@ -130,6 +131,9 @@ export default function UsersPage() {
         <div className="modal-backdrop">
           <form className="modal" onSubmit={createUser}>
             <h2>Novo usuário</h2>
+            <p className="text-muted">
+              Novos usuários são criados como Membro. Promoção a administrador só via banco de dados.
+            </p>
             <div className="form-grid">
               <label>
                 Nome *
@@ -157,21 +161,6 @@ export default function UsersPage() {
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                 />
-              </label>
-              <label>
-                Papel
-                <select
-                  value={form.role}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      role: e.target.value as "ADMIN" | "MEMBER",
-                    })
-                  }
-                >
-                  <option value="MEMBER">MEMBER</option>
-                  <option value="ADMIN">ADMIN</option>
-                </select>
               </label>
             </div>
             <div className="modal-actions">

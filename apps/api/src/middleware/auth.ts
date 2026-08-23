@@ -1,12 +1,14 @@
 import type { NextFunction, Request, Response } from "express";
-import type { Role } from "@prisma/client";
+import type { PermissionKey } from "@horizon/shared";
 import { verifyAccessToken } from "../lib/auth";
 import { AppError } from "../lib/errors";
+import { getPermissionsForRole } from "../lib/permissions";
 
 export type AuthUser = {
   id: string;
   email: string;
-  role: Role;
+  roleSlug: string;
+  permissions: PermissionKey[];
 };
 
 declare global {
@@ -17,7 +19,11 @@ declare global {
   }
 }
 
-export function requireAuth(req: Request, _res: Response, next: NextFunction) {
+export async function requireAuth(
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+) {
   try {
     const header = req.headers.authorization;
     if (!header?.startsWith("Bearer ")) {
@@ -26,25 +32,16 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction) {
 
     const token = header.slice("Bearer ".length).trim();
     const payload = verifyAccessToken(token);
+    const permissions = await getPermissionsForRole(payload.roleSlug);
+
     req.user = {
       id: payload.sub,
       email: payload.email,
-      role: payload.role,
+      roleSlug: payload.roleSlug,
+      permissions,
     };
     next();
   } catch {
     next(new AppError(401, "Token inválido ou expirado"));
   }
-}
-
-export function requireAdmin(req: Request, _res: Response, next: NextFunction) {
-  if (!req.user) {
-    next(new AppError(401, "Não autenticado"));
-    return;
-  }
-  if (req.user.role !== "ADMIN") {
-    next(new AppError(403, "Acesso restrito a administradores"));
-    return;
-  }
-  next();
 }

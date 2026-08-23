@@ -14,7 +14,16 @@ export type ApiError = {
   details?: unknown;
 };
 
-export type Role = "ADMIN" | "MEMBER";
+export type {
+  AuthSession,
+  PermissionKey,
+  RolePublic,
+} from "./rbac";
+export {
+  hasAnyPermission,
+  hasPermission,
+  PERMISSION_KEYS,
+} from "./rbac";
 
 export type ProspectStatus =
   | "NEW"
@@ -32,11 +41,13 @@ export type ActivityType =
   | "STATUS_CHANGE"
   | "OTHER";
 
+import type { RolePublic } from "./rbac";
+
 export type UserPublic = {
   id: string;
   email: string;
   name: string;
-  role: Role;
+  role: RolePublic;
   createdAt: string;
 };
 
@@ -45,9 +56,12 @@ export type UserOption = {
   name: string;
 };
 
+import type { PermissionKey } from "./rbac";
+
 export type AuthLoginResponse = {
   accessToken: string;
   user: UserPublic;
+  permissions: PermissionKey[];
 };
 
 export type Prospect = {

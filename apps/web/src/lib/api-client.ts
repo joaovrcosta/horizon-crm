@@ -1,4 +1,8 @@
-import type { ApiResponse, AuthLoginResponse, UserPublic } from "@horizon/shared";
+import type {
+  ApiResponse,
+  AuthLoginResponse,
+  AuthSession,
+} from "@horizon/shared";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
 
@@ -132,10 +136,10 @@ export async function logoutRequest() {
 }
 
 export async function fetchMe() {
-  return apiFetch<UserPublic>("/auth/me");
+  return apiFetch<AuthSession>("/auth/me");
 }
 
-export async function bootstrapSession(): Promise<UserPublic | null> {
+export async function bootstrapSession(): Promise<AuthSession | null> {
   try {
     const refreshed = await tryRefresh();
     if (!refreshed) return null;

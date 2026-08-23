@@ -1,8 +1,8 @@
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
 import jwt from "jsonwebtoken";
-import type { Role } from "@prisma/client";
-import type { UserPublic } from "@horizon/shared";
+import type { RolePublic, UserPublic } from "@horizon/shared";
+import { prisma } from "./prisma";
 
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET ?? "dev-access-secret";
 const ACCESS_EXPIRES = process.env.JWT_ACCESS_EXPIRES ?? "15m";
@@ -11,7 +11,7 @@ const REFRESH_DAYS = Number(process.env.JWT_REFRESH_EXPIRES_DAYS ?? 7);
 export type AccessPayload = {
   sub: string;
   email: string;
-  role: Role;
+  roleSlug: string;
 };
 
 export async function hashPassword(password: string): Promise<string> {
@@ -47,20 +47,48 @@ export function getRefreshExpiryDate(): Date {
   return date;
 }
 
+export function toRolePublic(role: { slug: string; name: string }): RolePublic {
+  return {
+    slug: role.slug,
+    name: role.name,
+  };
+}
+
 export function toUserPublic(user: {
   id: string;
   email: string;
   name: string;
-  role: Role;
+  role: { slug: string; name: string };
   createdAt: Date;
 }): UserPublic {
   return {
     id: user.id,
     email: user.email,
     name: user.name,
-    role: user.role,
+    role: toRolePublic(user.role),
     createdAt: user.createdAt.toISOString(),
   };
+}
+
+const userWithRoleInclude = {
+  role: { select: { slug: true, name: true } },
+} as const;
+
+export async function findUserWithRole(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    include: userWithRoleInclude,
+  });
+}
+
+export async function findRoleBySlug(slug: string) {
+  return prisma.role.findUnique({ where: { slug } });
+}
+
+export async function countUsersWithRoleSlug(slug: string): Promise<number> {
+  return prisma.user.count({
+    where: { role: { slug } },
+  });
 }
 
 export const REFRESH_COOKIE = "horizon_refresh";

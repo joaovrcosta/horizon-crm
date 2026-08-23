@@ -32,7 +32,7 @@ const STORAGE_KEY = "horizon-sidebar-collapsed";
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout, can } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -112,7 +112,7 @@ export function Sidebar() {
           );
         })}
 
-        {user?.role === "ADMIN" && (
+        {can("users:read") && (
           <Link
             href="/users"
             className={`nav-item${pathname.startsWith("/users") ? " active" : ""}`}

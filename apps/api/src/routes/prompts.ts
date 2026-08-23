@@ -2,6 +2,7 @@ import { Router } from "express";
 import { PromptVisibility } from "@prisma/client";
 import { z } from "zod";
 import type { ApiResponse, Prompt } from "@horizon/shared";
+import type { PermissionKey } from "@horizon/shared";
 import { AppError } from "../lib/errors";
 import { prisma } from "../lib/prisma";
 import { requireAuth } from "../middleware/auth";
@@ -42,14 +43,17 @@ function serializePrompt(p: {
 }
 
 function canManagePrompt(
-  user: { id: string; role: string },
+  user: { id: string; permissions: readonly string[] },
   prompt: { createdById: string },
 ) {
-  return user.role === "ADMIN" || prompt.createdById === user.id;
+  return (
+    user.permissions.includes("prompts:manage_all" satisfies PermissionKey) ||
+    prompt.createdById === user.id
+  );
 }
 
 function canViewPrompt(
-  user: { id: string; role: string },
+  user: { id: string; permissions: readonly string[] },
   prompt: { createdById: string; visibility: PromptVisibility },
 ) {
   if (prompt.visibility === PromptVisibility.PUBLIC) return true;
@@ -68,9 +72,11 @@ router.get("/", async (req, res, next) => {
       .parse(req.query);
 
     const userId = req.user!.id;
-    const isAdmin = req.user!.role === "ADMIN";
+    const canManageAll = req.user!.permissions.includes(
+      "prompts:manage_all" satisfies PermissionKey,
+    );
 
-    const accessFilter = isAdmin
+    const accessFilter = canManageAll
       ? {}
       : {
           OR: [

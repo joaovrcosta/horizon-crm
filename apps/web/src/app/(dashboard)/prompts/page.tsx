@@ -19,7 +19,7 @@ const emptyForm = {
 };
 
 export default function PromptsPage() {
-  const { user } = useAuth();
+  const { user, can } = useAuth();
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [query, setQuery] = useState("");
   const [visibilityFilter, setVisibilityFilter] = useState("");
@@ -54,7 +54,7 @@ export default function PromptsPage() {
   }, [visibilityFilter]);
 
   function canManage(prompt: Prompt) {
-    return user?.role === "ADMIN" || prompt.createdById === user?.id;
+    return can("prompts:manage_all") || prompt.createdById === user?.id;
   }
 
   function openCreate() {

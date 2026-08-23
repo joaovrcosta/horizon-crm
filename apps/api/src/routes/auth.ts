@@ -1,7 +1,7 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
-import type { ApiResponse, AuthLoginResponse, UserPublic } from "@horizon/shared";
+import type { ApiResponse, AuthLoginResponse, AuthSession } from "@horizon/shared";
 import { prisma } from "../lib/prisma";
 import {
   REFRESH_COOKIE,
@@ -13,9 +13,14 @@ import {
   verifyPassword,
 } from "../lib/auth";
 import { AppError } from "../lib/errors";
+import { getPermissionsForRole } from "../lib/permissions";
 import { requireAuth } from "../middleware/auth";
 
 const router = Router();
+
+const userWithRoleInclude = {
+  role: { select: { slug: true, name: true } },
+} as const;
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -71,21 +76,42 @@ async function issueRefreshCookie(userId: string, res: import("express").Respons
   setRefreshCookie(res, `${record.id}.${rawRefresh}`);
 }
 
+async function buildAuthSession(userId: string): Promise<AuthSession> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: userWithRoleInclude,
+  });
+
+  if (!user) {
+    throw new AppError(401, "Usuário não encontrado");
+  }
+
+  const permissions = await getPermissionsForRole(user.role.slug);
+
+  return {
+    user: toUserPublic(user),
+    permissions,
+  };
+}
+
 router.post("/login", loginLimiter, async (req, res, next) => {
   try {
     const body = loginSchema.parse(req.body);
     const user = await prisma.user.findUnique({
       where: { email: body.email.toLowerCase() },
+      include: userWithRoleInclude,
     });
 
     if (!user || !(await verifyPassword(body.password, user.passwordHash))) {
       throw new AppError(401, "Email ou senha inválidos");
     }
 
+    const permissions = await getPermissionsForRole(user.role.slug);
+
     const accessToken = signAccessToken({
       sub: user.id,
       email: user.email,
-      role: user.role,
+      roleSlug: user.role.slug,
     });
 
     await issueRefreshCookie(user.id, res);
@@ -94,6 +120,7 @@ router.post("/login", loginLimiter, async (req, res, next) => {
       data: {
         accessToken,
         user: toUserPublic(user),
+        permissions,
       },
     };
     res.json(payload);
@@ -116,7 +143,11 @@ router.post("/refresh", async (req, res, next) => {
 
     const stored = await prisma.refreshToken.findUnique({
       where: { id: parsed.id },
-      include: { user: true },
+      include: {
+        user: {
+          include: userWithRoleInclude,
+        },
+      },
     });
 
     if (
@@ -136,16 +167,19 @@ router.post("/refresh", async (req, res, next) => {
 
     await issueRefreshCookie(stored.userId, res);
 
+    const permissions = await getPermissionsForRole(stored.user.role.slug);
+
     const accessToken = signAccessToken({
       sub: stored.user.id,
       email: stored.user.email,
-      role: stored.user.role,
+      roleSlug: stored.user.role.slug,
     });
 
     const response: ApiResponse<AuthLoginResponse> = {
       data: {
         accessToken,
         user: toUserPublic(stored.user),
+        permissions,
       },
     };
     res.json(response);
@@ -176,13 +210,10 @@ router.post("/logout", async (req, res, next) => {
 
 router.get("/me", requireAuth, async (req, res, next) => {
   try {
-    const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
-    if (!user) {
-      throw new AppError(401, "Usuário não encontrado");
-    }
+    const session = await buildAuthSession(req.user!.id);
     res.json({
-      data: toUserPublic(user),
-    } satisfies ApiResponse<UserPublic>);
+      data: session,
+    } satisfies ApiResponse<AuthSession>);
   } catch (error) {
     next(error);
   }

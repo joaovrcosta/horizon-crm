@@ -1,26 +1,51 @@
 import { Router } from "express";
-import { Role } from "@prisma/client";
 import { z } from "zod";
 import type { ApiResponse, UserOption, UserPublic } from "@horizon/shared";
-import { hashPassword, toUserPublic } from "../lib/auth";
+import {
+  countUsersWithRoleSlug,
+  findRoleBySlug,
+  hashPassword,
+  toUserPublic,
+} from "../lib/auth";
 import { AppError } from "../lib/errors";
 import { prisma } from "../lib/prisma";
-import { requireAdmin, requireAuth } from "../middleware/auth";
+import { requireAuth } from "../middleware/auth";
+import { requirePermission } from "../middleware/rbac";
 
 const router = Router();
+
+const userWithRoleInclude = {
+  role: { select: { slug: true, name: true } },
+} as const;
 
 const createUserSchema = z.object({
   email: z.string().email(),
   name: z.string().min(2).max(120),
   password: z.string().min(8).max(128),
-  role: z.enum(["ADMIN", "MEMBER"]).default("MEMBER"),
 });
 
 const updateUserSchema = z.object({
   name: z.string().min(2).max(120).optional(),
-  role: z.enum(["ADMIN", "MEMBER"]).optional(),
   password: z.string().min(8).max(128).optional(),
 });
+
+async function assertNotLastAdmin(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { role: true },
+  });
+
+  if (!user) {
+    throw new AppError(404, "Usuário não encontrado");
+  }
+
+  if (user.role.slug === "ADMIN") {
+    const adminCount = await countUsersWithRoleSlug("ADMIN");
+    if (adminCount <= 1) {
+      throw new AppError(400, "Não é possível remover o último administrador");
+    }
+  }
+}
 
 router.get("/options", requireAuth, async (_req, res, next) => {
   try {
@@ -36,11 +61,12 @@ router.get("/options", requireAuth, async (_req, res, next) => {
   }
 });
 
-router.use(requireAuth, requireAdmin);
-
-router.get("/", async (_req, res, next) => {
+router.get("/", requireAuth, requirePermission("users:read"), async (_req, res, next) => {
   try {
-    const users = await prisma.user.findMany({ orderBy: { createdAt: "desc" } });
+    const users = await prisma.user.findMany({
+      orderBy: { createdAt: "desc" },
+      include: userWithRoleInclude,
+    });
     const payload: ApiResponse<UserPublic[]> = {
       data: users.map(toUserPublic),
     };
@@ -50,7 +76,7 @@ router.get("/", async (_req, res, next) => {
   }
 });
 
-router.post("/", async (req, res, next) => {
+router.post("/", requireAuth, requirePermission("users:create"), async (req, res, next) => {
   try {
     const body = createUserSchema.parse(req.body);
     const email = body.email.toLowerCase();
@@ -60,13 +86,19 @@ router.post("/", async (req, res, next) => {
       throw new AppError(409, "Email já cadastrado");
     }
 
+    const memberRole = await findRoleBySlug("MEMBER");
+    if (!memberRole) {
+      throw new AppError(500, "Papel MEMBER não configurado");
+    }
+
     const user = await prisma.user.create({
       data: {
         email,
         name: body.name,
-        role: body.role as Role,
+        roleId: memberRole.id,
         passwordHash: await hashPassword(body.password),
       },
+      include: userWithRoleInclude,
     });
 
     res.status(201).json({
@@ -77,24 +109,23 @@ router.post("/", async (req, res, next) => {
   }
 });
 
-router.patch("/:id", async (req, res, next) => {
+router.patch("/:id", requireAuth, requirePermission("users:update"), async (req, res, next) => {
   try {
     const id = z.string().cuid().parse(req.params.id);
     const body = updateUserSchema.parse(req.body);
 
     const data: {
       name?: string;
-      role?: Role;
       passwordHash?: string;
     } = {};
 
     if (body.name) data.name = body.name;
-    if (body.role) data.role = body.role as Role;
     if (body.password) data.passwordHash = await hashPassword(body.password);
 
     const user = await prisma.user.update({
       where: { id },
       data,
+      include: userWithRoleInclude,
     });
 
     res.json({
@@ -105,13 +136,15 @@ router.patch("/:id", async (req, res, next) => {
   }
 });
 
-router.delete("/:id", async (req, res, next) => {
+router.delete("/:id", requireAuth, requirePermission("users:delete"), async (req, res, next) => {
   try {
     const id = z.string().cuid().parse(req.params.id);
 
     if (req.user?.id === id) {
       throw new AppError(400, "Você não pode remover a própria conta");
     }
+
+    await assertNotLastAdmin(id);
 
     await prisma.user.delete({ where: { id } });
     res.status(204).send();
