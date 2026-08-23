@@ -5,6 +5,7 @@ import type { ApiResponse, AuthLoginResponse, AuthSession } from "@horizon/share
 import { prisma } from "../lib/prisma";
 import {
   REFRESH_COOKIE,
+  createMemberUser,
   createRefreshTokenValue,
   getRefreshExpiryDate,
   hashToken,
@@ -27,12 +28,26 @@ const loginSchema = z.object({
   password: z.string().min(8),
 });
 
+const registerSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(2).max(120),
+  password: z.string().min(8).max(128),
+});
+
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Muitas tentativas de login. Tente novamente mais tarde." },
+});
+
+const registerLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Muitas tentativas de cadastro. Tente novamente mais tarde." },
 });
 
 function setRefreshCookie(res: import("express").Response, token: string) {
@@ -93,6 +108,46 @@ async function buildAuthSession(userId: string): Promise<AuthSession> {
     permissions,
   };
 }
+
+router.post("/register", registerLimiter, async (req, res, next) => {
+  try {
+    const body = registerSchema.parse(req.body);
+
+    let user;
+    try {
+      user = await createMemberUser(body);
+    } catch (error) {
+      if (error instanceof Error && error.message === "EMAIL_TAKEN") {
+        throw new AppError(409, "Email já cadastrado");
+      }
+      if (error instanceof Error && error.message === "MEMBER_ROLE_MISSING") {
+        throw new AppError(500, "Papel MEMBER não configurado");
+      }
+      throw error;
+    }
+
+    const permissions = await getPermissionsForRole(user.role.slug);
+
+    const accessToken = signAccessToken({
+      sub: user.id,
+      email: user.email,
+      roleSlug: user.role.slug,
+    });
+
+    await issueRefreshCookie(user.id, res);
+
+    const payload: ApiResponse<AuthLoginResponse> = {
+      data: {
+        accessToken,
+        user: toUserPublic(user),
+        permissions,
+      },
+    };
+    res.status(201).json(payload);
+  } catch (error) {
+    next(error);
+  }
+});
 
 router.post("/login", loginLimiter, async (req, res, next) => {
   try {

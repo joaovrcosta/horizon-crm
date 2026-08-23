@@ -82,12 +82,10 @@ export default function UsersPage() {
     <div className="users-page">
       <div className="page-header">
         <h1>Usuários</h1>
-        {can("users:create") ? (
-          <button className="btn btn-primary" type="button" onClick={() => setShowModal(true)}>
-            <IconPlus size={16} />
-            Criar usuário
-          </button>
-        ) : null}
+        <button className="btn btn-primary" type="button" onClick={() => setShowModal(true)}>
+          <IconPlus size={16} />
+          Criar usuário
+        </button>
       </div>
 
       {error ? <p style={{ color: "#b91c1c" }}>{error}</p> : null}

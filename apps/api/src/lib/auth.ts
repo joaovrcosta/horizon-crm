@@ -85,6 +85,34 @@ export async function findRoleBySlug(slug: string) {
   return prisma.role.findUnique({ where: { slug } });
 }
 
+export async function createMemberUser(input: {
+  email: string;
+  name: string;
+  password: string;
+}) {
+  const email = input.email.toLowerCase();
+
+  const exists = await prisma.user.findUnique({ where: { email } });
+  if (exists) {
+    throw new Error("EMAIL_TAKEN");
+  }
+
+  const memberRole = await findRoleBySlug("MEMBER");
+  if (!memberRole) {
+    throw new Error("MEMBER_ROLE_MISSING");
+  }
+
+  return prisma.user.create({
+    data: {
+      email,
+      name: input.name,
+      roleId: memberRole.id,
+      passwordHash: await hashPassword(input.password),
+    },
+    include: userWithRoleInclude,
+  });
+}
+
 export async function countUsersWithRoleSlug(slug: string): Promise<number> {
   return prisma.user.count({
     where: { role: { slug } },

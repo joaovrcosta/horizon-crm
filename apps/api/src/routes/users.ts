@@ -1,9 +1,10 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import type { ApiResponse, UserOption, UserPublic } from "@horizon/shared";
 import {
   countUsersWithRoleSlug,
-  findRoleBySlug,
+  createMemberUser,
   hashPassword,
   toUserPublic,
 } from "../lib/auth";
@@ -27,6 +28,14 @@ const createUserSchema = z.object({
 const updateUserSchema = z.object({
   name: z.string().min(2).max(120).optional(),
   password: z.string().min(8).max(128).optional(),
+});
+
+const createLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Muitas tentativas de cadastro. Tente novamente mais tarde." },
 });
 
 async function assertNotLastAdmin(userId: string) {
@@ -76,30 +85,23 @@ router.get("/", requireAuth, requirePermission("users:read"), async (_req, res, 
   }
 });
 
-router.post("/", requireAuth, requirePermission("users:create"), async (req, res, next) => {
+/** Cadastro público — sempre MEMBER. Admin só via banco. */
+router.post("/", createLimiter, async (req, res, next) => {
   try {
     const body = createUserSchema.parse(req.body);
-    const email = body.email.toLowerCase();
 
-    const exists = await prisma.user.findUnique({ where: { email } });
-    if (exists) {
-      throw new AppError(409, "Email já cadastrado");
+    let user;
+    try {
+      user = await createMemberUser(body);
+    } catch (error) {
+      if (error instanceof Error && error.message === "EMAIL_TAKEN") {
+        throw new AppError(409, "Email já cadastrado");
+      }
+      if (error instanceof Error && error.message === "MEMBER_ROLE_MISSING") {
+        throw new AppError(500, "Papel MEMBER não configurado");
+      }
+      throw error;
     }
-
-    const memberRole = await findRoleBySlug("MEMBER");
-    if (!memberRole) {
-      throw new AppError(500, "Papel MEMBER não configurado");
-    }
-
-    const user = await prisma.user.create({
-      data: {
-        email,
-        name: body.name,
-        roleId: memberRole.id,
-        passwordHash: await hashPassword(body.password),
-      },
-      include: userWithRoleInclude,
-    });
 
     res.status(201).json({
       data: toUserPublic(user),
