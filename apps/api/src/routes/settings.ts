@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
 import type { ApiResponse, EmailSignature } from "@horizon/shared";
-import { DEFAULT_EMAIL_LOGO_URL } from "@horizon/shared";
 import { prisma } from "../lib/prisma";
 import { requireAuth } from "../middleware/auth";
 
@@ -64,9 +63,7 @@ function serialize(row: {
     displayName: row.displayName,
     title: row.title,
     phone: row.phone,
-    logoUrl: row.logoUrl?.startsWith("/")
-    ? DEFAULT_EMAIL_LOGO_URL
-    : row.logoUrl,
+    logoUrl: row.logoUrl,
     company: row.company,
     tagline: row.tagline,
     addressLine1: row.addressLine1,
@@ -77,30 +74,40 @@ function serialize(row: {
   };
 }
 
-const emptySignature = (userId: string): EmailSignature => ({
-  id: "",
-  userId,
-  enabled: true,
-  displayName: null,
-  title: null,
-  phone: null,
-  logoUrl: DEFAULT_EMAIL_LOGO_URL,
-  company: "halk.",
-  tagline: null,
-  addressLine1: null,
-  addressLine2: null,
-  website: null,
-  defaultIntro: null,
-  updatedAt: new Date().toISOString(),
-});
+/** Assinatura vazia da conta — sem defaults globais da agência. */
+function emptySignature(userId: string, userName?: string | null): EmailSignature {
+  return {
+    id: "",
+    userId,
+    enabled: false,
+    displayName: userName?.trim() || null,
+    title: null,
+    phone: null,
+    logoUrl: null,
+    company: null,
+    tagline: null,
+    addressLine1: null,
+    addressLine2: null,
+    website: null,
+    defaultIntro: null,
+    updatedAt: new Date().toISOString(),
+  };
+}
 
 router.use(requireAuth);
 
 router.get("/email-signature", async (req, res, next) => {
   try {
     const userId = req.user!.id;
-    const row = await prisma.emailSignature.findUnique({ where: { userId } });
-    const data = row ? serialize(row) : emptySignature(userId);
+    const [row, user] = await Promise.all([
+      prisma.emailSignature.findUnique({ where: { userId } }),
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true },
+      }),
+    ]);
+
+    const data = row ? serialize(row) : emptySignature(userId, user?.name);
     res.json({ data } satisfies ApiResponse<EmailSignature>);
   } catch (error) {
     next(error);
@@ -120,7 +127,7 @@ router.put("/email-signature", async (req, res, next) => {
         displayName: body.displayName,
         title: body.title,
         phone: body.phone,
-        logoUrl: body.logoUrl ?? DEFAULT_EMAIL_LOGO_URL,
+        logoUrl: body.logoUrl,
         company: body.company,
         tagline: body.tagline,
         addressLine1: body.addressLine1,
@@ -133,7 +140,7 @@ router.put("/email-signature", async (req, res, next) => {
         displayName: body.displayName,
         title: body.title,
         phone: body.phone,
-        logoUrl: body.logoUrl ?? DEFAULT_EMAIL_LOGO_URL,
+        logoUrl: body.logoUrl,
         company: body.company,
         tagline: body.tagline,
         addressLine1: body.addressLine1,

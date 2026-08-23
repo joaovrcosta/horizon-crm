@@ -2,7 +2,6 @@ import { createElement } from "react";
 import { Resend } from "resend";
 import { render } from "@react-email/render";
 import {
-  DEFAULT_EMAIL_LOGO_URL,
   type EmailSignature,
 } from "@horizon/shared";
 import { AppError } from "./errors";
@@ -31,14 +30,14 @@ function getFrom() {
   return from;
 }
 
-function resolveLogoUrl(logoUrl: string | null | undefined) {
-  if (!logoUrl?.trim()) return DEFAULT_EMAIL_LOGO_URL;
+function resolveLogoUrl(logoUrl: string | null | undefined): string | null {
+  if (!logoUrl?.trim()) return null;
   const url = logoUrl.trim();
   if (url.startsWith("/") || /localhost|127\.0\.0\.1/i.test(url)) {
-    return DEFAULT_EMAIL_LOGO_URL;
+    return null;
   }
   if (/^https?:\/\//i.test(url) || url.startsWith("data:")) return url;
-  return DEFAULT_EMAIL_LOGO_URL;
+  return null;
 }
 
 export function toSignatureProps(

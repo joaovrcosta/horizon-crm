@@ -5,8 +5,8 @@ import type { RolePublic, UserPublic } from "@horizon/shared";
 import { prisma } from "./prisma";
 
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET ?? "dev-access-secret";
-const ACCESS_EXPIRES = process.env.JWT_ACCESS_EXPIRES ?? "15m";
-const REFRESH_DAYS = Number(process.env.JWT_REFRESH_EXPIRES_DAYS ?? 7);
+const ACCESS_EXPIRES = process.env.JWT_ACCESS_EXPIRES ?? "8h";
+const REFRESH_DAYS = Number(process.env.JWT_REFRESH_EXPIRES_DAYS ?? 30);
 
 export type AccessPayload = {
   sub: string;

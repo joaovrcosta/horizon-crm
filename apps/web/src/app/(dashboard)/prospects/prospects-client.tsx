@@ -326,13 +326,11 @@ export default function ProspectsPage() {
     try {
       const [promptList, signature] = await Promise.all([
         apiFetch<Prompt[]>("/prompts").catch(() => [] as Prompt[]),
-        apiFetch<EmailSignature>("/settings/email-signature").catch(
-          () => null,
-        ),
+        apiFetch<EmailSignature>("/settings/email-signature"),
       ]);
       setPrompts(promptList);
       setEmailSignature(signature);
-      setIncludeSignature(signature?.enabled ?? false);
+      setIncludeSignature(signature.enabled);
 
       if (signature?.defaultIntro?.trim()) {
         setEmailBody(

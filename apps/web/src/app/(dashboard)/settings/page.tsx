@@ -2,7 +2,6 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import type { EmailSignature } from "@horizon/shared";
-import { DEFAULT_EMAIL_LOGO_URL } from "@horizon/shared";
 import { useAuth } from "@/components/auth-provider";
 import { EmailSignaturePreview } from "@/components/email-signature-preview";
 import { apiFetch } from "@/lib/api-client";
@@ -22,12 +21,12 @@ type FormState = {
 };
 
 const emptyForm = (name = ""): FormState => ({
-  enabled: true,
+  enabled: false,
   displayName: name,
   title: "",
   phone: "",
-  logoUrl: DEFAULT_EMAIL_LOGO_URL,
-  company: "halk.",
+  logoUrl: "",
+  company: "",
   tagline: "",
   addressLine1: "",
   addressLine2: "",
@@ -41,7 +40,7 @@ function toForm(sig: EmailSignature, fallbackName: string): FormState {
     displayName: sig.displayName ?? fallbackName,
     title: sig.title ?? "",
     phone: sig.phone ?? "",
-    logoUrl: sig.logoUrl ?? DEFAULT_EMAIL_LOGO_URL,
+    logoUrl: sig.logoUrl ?? "",
     company: sig.company ?? "",
     tagline: sig.tagline ?? "",
     addressLine1: sig.addressLine1 ?? "",
@@ -60,11 +59,12 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
 
   async function load() {
+    if (!user) return;
     setLoading(true);
     setError("");
     try {
       const data = await apiFetch<EmailSignature>("/settings/email-signature");
-      setForm(toForm(data, user?.name ?? ""));
+      setForm(toForm(data, user.name));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao carregar");
     } finally {
@@ -75,7 +75,7 @@ export default function SettingsPage() {
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user?.id]);
 
   async function save(event: FormEvent) {
     event.preventDefault();
@@ -129,8 +129,11 @@ export default function SettingsPage() {
     <div className="page-wrap">
       <header className="page-header">
         <div>
-          <h1>Configurações</h1>
-          <p>Assinatura e corpo padrão dos e-mails de prospecção (React Email).</p>
+          <h1>Minha assinatura</h1>
+          <p>
+            Configuração pessoal da sua conta ({user?.email}). Cada usuário tem
+            sua própria assinatura e corpo padrão de e-mail.
+          </p>
         </div>
       </header>
 
@@ -142,9 +145,9 @@ export default function SettingsPage() {
           <section className="panel">
             <h2>Assinatura de e-mail</h2>
             <p className="panel-desc">
-              Template feito com React Email (HTML de e-mail com estilos
-              inline). Ajuste os campos e veja a prévia ao lado. Ao enviar, a
-              assinatura rica é copiada para colar no Gmail/Outlook (Ctrl+V).
+              Preencha os campos abaixo com seus dados. Ao enviar e-mails de
+              prospecção, será usada apenas a sua assinatura — não a de outros
+              usuários.
             </p>
 
             <label className="checkbox-row">
@@ -155,7 +158,7 @@ export default function SettingsPage() {
                   setForm({ ...form, enabled: e.target.checked })
                 }
               />
-              Incluir assinatura por padrão
+              Usar minha assinatura nos e-mails
             </label>
 
             <div className="form-grid form-grid-2">
@@ -174,7 +177,7 @@ export default function SettingsPage() {
                 <input
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  placeholder="Founder & Creative Developer"
+                  placeholder="Ex.: Consultor comercial"
                 />
               </label>
               <label>
@@ -192,7 +195,7 @@ export default function SettingsPage() {
                   onChange={(e) =>
                     setForm({ ...form, website: e.target.value })
                   }
-                  placeholder="halk.studio"
+                  placeholder="seusite.com.br"
                 />
               </label>
               <label className="span-2">
@@ -202,7 +205,7 @@ export default function SettingsPage() {
                   onChange={(e) =>
                     setForm({ ...form, logoUrl: e.target.value })
                   }
-                  placeholder={DEFAULT_EMAIL_LOGO_URL}
+                  placeholder="https://… (opcional)"
                 />
               </label>
               <label>
@@ -212,7 +215,7 @@ export default function SettingsPage() {
                   onChange={(e) =>
                     setForm({ ...form, company: e.target.value })
                   }
-                  placeholder="halk."
+                  placeholder="Nome da empresa"
                 />
               </label>
               <label>
@@ -222,7 +225,7 @@ export default function SettingsPage() {
                   onChange={(e) =>
                     setForm({ ...form, tagline: e.target.value })
                   }
-                  placeholder="Agência de experiências digitais"
+                  placeholder="Frase curta (opcional)"
                 />
               </label>
               <label>
@@ -252,7 +255,7 @@ export default function SettingsPage() {
                     setForm({ ...form, defaultIntro: e.target.value })
                   }
                   placeholder={
-                    "Olá {{nome}},\n\nTudo bem? Gostaria de apresentar a halk.…"
+                    "Olá {{nome}},\n\nTudo bem? Gostaria de apresentar…"
                   }
                 />
               </label>
@@ -260,13 +263,12 @@ export default function SettingsPage() {
 
             <p className="field-hint">
               No corpo padrão você pode usar {"{{nome}}"}, {"{{email}}"},{" "}
-              {"{{telefone}}"}, etc. O logo padrão é a imagem pública da halk.
-              no GitHub — use sempre uma URL https acessível (não localhost).
+              {"{{telefone}}"}, etc. Use URLs https públicas para o logo.
             </p>
 
             <div className="modal-actions" style={{ justifyContent: "flex-start" }}>
               <button className="btn btn-primary" disabled={saving}>
-                {saving ? "Salvando…" : "Salvar assinatura"}
+                {saving ? "Salvando…" : "Salvar minha assinatura"}
               </button>
               {saved ? (
                 <span className="save-ok">Salvo.</span>

@@ -50,23 +50,29 @@ const registerLimiter = rateLimit({
   message: { error: "Muitas tentativas de cadastro. Tente novamente mais tarde." },
 });
 
-function setRefreshCookie(res: import("express").Response, token: string) {
+function refreshCookieOptions(): import("express").CookieOptions {
   const isProd = process.env.NODE_ENV === "production";
-  res.cookie(REFRESH_COOKIE, token, {
+  return {
     httpOnly: true,
     secure: isProd,
-    sameSite: "lax",
+    sameSite: isProd ? "none" : "lax",
     path: "/auth",
-    maxAge: Number(process.env.JWT_REFRESH_EXPIRES_DAYS ?? 7) * 24 * 60 * 60 * 1000,
-  });
+    maxAge:
+      Number(process.env.JWT_REFRESH_EXPIRES_DAYS ?? 30) * 24 * 60 * 60 * 1000,
+  };
+}
+
+function setRefreshCookie(res: import("express").Response, token: string) {
+  res.cookie(REFRESH_COOKIE, token, refreshCookieOptions());
 }
 
 function clearRefreshCookie(res: import("express").Response) {
+  const isProd = process.env.NODE_ENV === "production";
   res.clearCookie(REFRESH_COOKIE, {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: isProd ? "none" : "lax",
     path: "/auth",
-    secure: process.env.NODE_ENV === "production",
+    secure: isProd,
   });
 }
 

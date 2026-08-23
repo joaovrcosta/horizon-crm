@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
 import type { ApiResponse, EmailSignature, ProspectActivity } from "@horizon/shared";
-import { DEFAULT_EMAIL_LOGO_URL } from "@horizon/shared";
 import { AppError } from "../lib/errors";
 import { prisma } from "../lib/prisma";
 import { renderProspectEmailHtml, sendProspectEmail } from "../lib/resend";
@@ -59,10 +58,7 @@ function serializeSignature(row: {
     displayName: row.displayName,
     title: row.title,
     phone: row.phone,
-    logoUrl:
-      row.logoUrl?.startsWith("/") || !row.logoUrl
-        ? DEFAULT_EMAIL_LOGO_URL
-        : row.logoUrl,
+    logoUrl: row.logoUrl,
     company: row.company,
     tagline: row.tagline,
     addressLine1: row.addressLine1,

@@ -1,7 +1,6 @@
 import { createElement } from "react";
 import { render } from "@react-email/render";
 import {
-  DEFAULT_EMAIL_LOGO_URL,
   type EmailSignature,
 } from "@horizon/shared";
 import {
@@ -26,26 +25,27 @@ function isPublicLogoUrl(url: string) {
 export function resolveLogoUrl(
   logoUrl: string | null | undefined,
   origin?: string,
-) {
-  if (!logoUrl?.trim()) return DEFAULT_EMAIL_LOGO_URL;
+): string | null {
+  if (!logoUrl?.trim()) return null;
   let url = logoUrl.trim();
   if (url.startsWith("/") || /localhost|127\.0\.0\.1/i.test(url)) {
-    return DEFAULT_EMAIL_LOGO_URL;
+    if (!origin) return null;
+    const base = origin.replace(/\/$/, "");
+    url = url.startsWith("/") ? `${base}${url}` : `${base}/${url}`;
   }
-  if (/^https?:\/\//i.test(url) || url.startsWith("data:")) return url;
-  const base = (
-    origin ??
-    (typeof window !== "undefined" ? window.location.origin : "")
-  ).replace(/\/$/, "");
-  if (!base) return DEFAULT_EMAIL_LOGO_URL;
-  url = url.startsWith("/") ? `${base}${url}` : `${base}/${url}`;
-  if (!isPublicLogoUrl(url)) return DEFAULT_EMAIL_LOGO_URL;
-  return url;
+  if (/^https?:\/\//i.test(url) || url.startsWith("data:")) {
+    return isPublicLogoUrl(url) ? url : null;
+  }
+  return null;
 }
 
 /** Converte URL do logo em data URI via API (evita CORS e funciona no Outlook). */
 export async function logoToDataUri(logoUrl: string | null | undefined) {
-  const resolved = resolveLogoUrl(logoUrl);
+  const resolved = resolveLogoUrl(
+    logoUrl,
+    typeof window !== "undefined" ? window.location.origin : undefined,
+  );
+  if (!resolved) return null;
   if (resolved.startsWith("data:")) return resolved;
 
   try {
