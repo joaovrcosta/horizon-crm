@@ -6,17 +6,13 @@ import { useAuth } from "@/components/auth-provider";
 import { useTheme } from "@/components/theme-provider";
 import { IconMoon, IconSun } from "@/components/icons";
 
-type Mode = "login" | "register";
-
 export default function LoginForm() {
-  const { user, loading, login, register } = useAuth();
+  const { user, loading, login } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next") || "/";
 
-  const [mode, setMode] = useState<Mode>("login");
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -33,20 +29,10 @@ export default function LoginForm() {
     setError("");
     setSubmitting(true);
     try {
-      if (mode === "register") {
-        await register(name.trim(), email, password);
-      } else {
-        await login(email, password);
-      }
+      await login(email, password);
       router.replace(next);
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : mode === "register"
-            ? "Falha no cadastro"
-            : "Falha no login",
-      );
+      setError(err instanceof Error ? err.message : "Falha no login");
     } finally {
       setSubmitting(false);
     }
@@ -76,51 +62,9 @@ export default function LoginForm() {
         <h1>
           horizon<span style={{ color: "var(--cyan)" }}>.</span>
         </h1>
-        <p>
-          {mode === "login"
-            ? "Acesse o painel da agência"
-            : "Crie sua conta (papel Membro)"}
-        </p>
-
-        <div className="login-tabs" style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-          <button
-            type="button"
-            className={`btn ${mode === "login" ? "btn-primary" : "btn-secondary"}`}
-            onClick={() => {
-              setMode("login");
-              setError("");
-            }}
-          >
-            Entrar
-          </button>
-          <button
-            type="button"
-            className={`btn ${mode === "register" ? "btn-primary" : "btn-secondary"}`}
-            onClick={() => {
-              setMode("register");
-              setError("");
-            }}
-          >
-            Cadastrar
-          </button>
-        </div>
+        <p>Acesse o painel da agência</p>
 
         {error ? <p className="error">{error}</p> : null}
-
-        {mode === "register" ? (
-          <>
-            <label htmlFor="name">Nome</label>
-            <input
-              id="name"
-              type="text"
-              autoComplete="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              minLength={2}
-            />
-          </>
-        ) : null}
 
         <label htmlFor="email">Email</label>
         <input
@@ -136,7 +80,7 @@ export default function LoginForm() {
         <input
           id="password"
           type="password"
-          autoComplete={mode === "register" ? "new-password" : "current-password"}
+          autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
@@ -144,13 +88,7 @@ export default function LoginForm() {
         />
 
         <button className="btn btn-primary btn-block" disabled={submitting}>
-          {submitting
-            ? mode === "register"
-              ? "Criando…"
-              : "Entrando…"
-            : mode === "register"
-              ? "Criar conta"
-              : "Entrar"}
+          {submitting ? "Entrando…" : "Entrar"}
         </button>
       </form>
     </div>

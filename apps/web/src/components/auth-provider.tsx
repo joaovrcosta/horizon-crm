@@ -14,7 +14,6 @@ import {
   bootstrapSession,
   loginRequest,
   logoutRequest,
-  registerRequest,
 } from "@/lib/api-client";
 
 type AuthContextValue = {
@@ -23,7 +22,6 @@ type AuthContextValue = {
   loading: boolean;
   can: (key: PermissionKey) => boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -75,15 +73,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setPermissions(data.permissions);
   }, []);
 
-  const register = useCallback(
-    async (name: string, email: string, password: string) => {
-      const data = await registerRequest(name, email, password);
-      setUser(data.user);
-      setPermissions(data.permissions);
-    },
-    [],
-  );
-
   const logout = useCallback(async () => {
     await logoutRequest();
     setUser(null);
@@ -96,8 +85,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ user, permissions, loading, can, login, register, logout }),
-    [user, permissions, loading, can, login, register, logout],
+    () => ({ user, permissions, loading, can, login, logout }),
+    [user, permissions, loading, can, login, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -124,20 +124,6 @@ export async function loginRequest(email: string, password: string) {
   return data;
 }
 
-export async function registerRequest(
-  name: string,
-  email: string,
-  password: string,
-) {
-  const data = await apiFetch<AuthLoginResponse>("/auth/register", {
-    method: "POST",
-    body: { name, email, password },
-    auth: false,
-  });
-  accessToken = data.accessToken;
-  return data;
-}
-
 export async function logoutRequest() {
   try {
     await apiFetch<{ ok: boolean }>("/auth/logout", {

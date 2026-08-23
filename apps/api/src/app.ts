@@ -17,10 +17,26 @@ import usersRoutes from "./routes/users";
 export function createApp() {
   const app = express();
 
+  const corsOrigins = (process.env.CORS_ORIGIN ?? "http://localhost:3000")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
   app.use(helmet());
   app.use(
     cors({
-      origin: process.env.CORS_ORIGIN ?? "http://localhost:3000",
+      origin(origin, callback) {
+        // Requests sem Origin (Insomnia, curl, health checks)
+        if (!origin) {
+          callback(null, true);
+          return;
+        }
+        if (corsOrigins.includes(origin) || corsOrigins.includes("*")) {
+          callback(null, true);
+          return;
+        }
+        callback(null, false);
+      },
       credentials: true,
     }),
   );
