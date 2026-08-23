@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { Resend } from "resend";
 import { render } from "@react-email/render";
 import {
+  DEFAULT_EMAIL_REPLY_TO,
   type EmailSignature,
 } from "@horizon/shared";
 import { AppError } from "./errors";
@@ -98,6 +99,24 @@ export async function renderProspectEmailHtml(opts: {
   return { html, text: textParts.join("\n") };
 }
 
+function isUsableReplyTo(email: string | null | undefined): email is string {
+  const value = email?.trim();
+  if (!value || !value.includes("@")) return false;
+  // Domínios de desenvolvimento não recebem e-mail real
+  if (/\.local$/i.test(value) || /@localhost$/i.test(value)) return false;
+  return true;
+}
+
+export function resolveReplyToEmail(signature: EmailSignature | null): string {
+  if (isUsableReplyTo(signature?.replyToEmail)) {
+    return signature.replyToEmail.trim();
+  }
+  if (isUsableReplyTo(process.env.EMAIL_REPLY_TO)) {
+    return process.env.EMAIL_REPLY_TO.trim();
+  }
+  return DEFAULT_EMAIL_REPLY_TO;
+}
+
 export async function sendProspectEmail(opts: {
   to: string;
   subject: string;
@@ -106,18 +125,33 @@ export async function sendProspectEmail(opts: {
   replyTo?: string | null;
 }) {
   const resend = getResend();
-  const { data, error } = await resend.emails.send({
+  // Sempre um endereço real — nunca o e-mail de login do CRM (.local)
+  const replyTo = isUsableReplyTo(opts.replyTo)
+    ? opts.replyTo.trim()
+    : isUsableReplyTo(process.env.EMAIL_REPLY_TO)
+      ? process.env.EMAIL_REPLY_TO.trim()
+      : DEFAULT_EMAIL_REPLY_TO;
+
+  const payload = {
     from: getFrom(),
     to: opts.to,
     subject: opts.subject,
     html: opts.html,
     text: opts.text,
-    replyTo: opts.replyTo || undefined,
+    replyTo: [replyTo],
+  };
+
+  console.info("[email] sending", {
+    to: payload.to,
+    from: payload.from,
+    replyTo: payload.replyTo,
   });
+
+  const { data, error } = await resend.emails.send(payload);
 
   if (error) {
     throw new AppError(502, error.message || "Falha ao enviar e-mail (Resend)");
   }
 
-  return data;
+  return { ...(data ?? {}), replyTo };
 }

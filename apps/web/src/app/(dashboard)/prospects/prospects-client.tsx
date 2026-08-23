@@ -20,6 +20,8 @@ import {
   copyHtmlToClipboard,
 } from "@/lib/email-signature";
 import { EmailSignaturePreview } from "@/components/email-signature-preview";
+import { ProspectsListSkeleton } from "@/components/skeleton";
+import { useToast } from "@/components/toast";
 import {
   applyPromptTemplate,
   formatDateTime,
@@ -105,6 +107,7 @@ const ACTIVITY_LABEL: Record<ActivityType, string> = {
 
 export default function ProspectsPage() {
   const { user } = useAuth();
+  const toast = useToast();
   const searchParams = useSearchParams();
   const initialId = searchParams.get("id");
 
@@ -380,6 +383,7 @@ export default function ProspectsPage() {
     try {
       const result = await apiFetch<{
         emailId: string | null;
+        replyTo?: string | null;
         activity: ProspectActivity;
         statusUpdated: boolean;
       }>(`/prospects/${selected.id}/emails`, {
@@ -399,12 +403,13 @@ export default function ProspectsPage() {
           ),
         );
       }
-      setEmailClipboardHint("E-mail enviado com sucesso via Resend.");
-      setTimeout(() => setShowEmailModal(false), 900);
+      setShowEmailModal(false);
+      toast.success(`E-mail enviado. Respostas vão para ${result.replyTo ?? "hello@halk.solutions"}.`);
     } catch (err) {
-      setEmailClipboardHint(
-        err instanceof Error ? err.message : "Falha ao enviar e-mail",
-      );
+      const message =
+        err instanceof Error ? err.message : "Falha ao enviar e-mail";
+      setEmailClipboardHint(message);
+      toast.error(message);
     } finally {
       setOpeningEmail(false);
     }
@@ -495,7 +500,7 @@ export default function ProspectsPage() {
         </div>
 
         <div className="list-items">
-          {loading ? <p className="list-empty">Carregando…</p> : null}
+          {loading ? <ProspectsListSkeleton /> : null}
           {error ? (
             <p className="list-empty list-empty-error">{error}</p>
           ) : null}

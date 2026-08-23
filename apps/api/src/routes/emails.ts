@@ -1,9 +1,14 @@
 import { Router } from "express";
 import { z } from "zod";
 import type { ApiResponse, EmailSignature, ProspectActivity } from "@horizon/shared";
+import { DEFAULT_EMAIL_REPLY_TO } from "@horizon/shared";
 import { AppError } from "../lib/errors";
 import { prisma } from "../lib/prisma";
-import { renderProspectEmailHtml, sendProspectEmail } from "../lib/resend";
+import {
+  renderProspectEmailHtml,
+  resolveReplyToEmail,
+  sendProspectEmail,
+} from "../lib/resend";
 import { requireAuth } from "../middleware/auth";
 
 const router = Router({ mergeParams: true });
@@ -38,6 +43,7 @@ function serializeSignature(row: {
   id: string;
   userId: string;
   enabled: boolean;
+  replyToEmail: string | null;
   displayName: string | null;
   title: string | null;
   phone: string | null;
@@ -55,6 +61,7 @@ function serializeSignature(row: {
     id: row.id,
     userId: row.userId,
     enabled: row.enabled,
+    replyToEmail: row.replyToEmail ?? DEFAULT_EMAIL_REPLY_TO,
     displayName: row.displayName,
     title: row.title,
     phone: row.phone,
@@ -108,12 +115,13 @@ router.post("/", async (req, res, next) => {
       fallbackName: sender?.name,
     });
 
+    const replyTo = resolveReplyToEmail(signature);
     const sent = await sendProspectEmail({
       to: prospect.email.trim(),
       subject: body.subject.trim(),
       html,
       text,
-      replyTo: sender?.email,
+      replyTo,
     });
 
     const activity = await prisma.prospectActivity.create({
@@ -124,6 +132,7 @@ router.post("/", async (req, res, next) => {
         content: [
           `Enviado via Resend para ${prospect.email}`,
           `Assunto: ${body.subject.trim()}`,
+          `Reply-To: ${sent.replyTo}`,
           sent?.id ? `ID: ${sent.id}` : null,
           "",
           body.body.trim().slice(0, 800),
@@ -144,6 +153,7 @@ router.post("/", async (req, res, next) => {
     res.status(201).json({
       data: {
         emailId: sent?.id ?? null,
+        replyTo: sent.replyTo,
         activity: serializeActivity({
           ...activity,
           type: "EMAIL",
@@ -152,6 +162,7 @@ router.post("/", async (req, res, next) => {
       },
     } satisfies ApiResponse<{
       emailId: string | null;
+      replyTo: string;
       activity: ProspectActivity;
       statusUpdated: boolean;
     }>);

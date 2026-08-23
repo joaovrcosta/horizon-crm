@@ -155,6 +155,7 @@ model EmailSignature {
   userId       String   @unique
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   enabled      Boolean  @default(true)
+  replyToEmail String?  @default("hello@halk.solutions")
   displayName  String?
   title        String?
   phone        String?

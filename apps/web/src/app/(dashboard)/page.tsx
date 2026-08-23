@@ -7,6 +7,7 @@ import { PROSPECT_STATUSES, STATUS_LABELS } from "@horizon/shared";
 import { apiFetch } from "@/lib/api-client";
 import { formatDateTime } from "@/lib/prospect-utils";
 import { IconProspects } from "@/components/icons";
+import { DashboardSkeleton } from "@/components/skeleton";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<ProspectStats | null>(null);
@@ -36,6 +37,10 @@ export default function DashboardPage() {
     ? Math.max(...Object.values(stats.byStatus), 1)
     : 1;
 
+  if (loading) {
+    return <DashboardSkeleton />;
+  }
+
   return (
     <div className="dashboard-page">
       <div className="page-header">
@@ -46,7 +51,6 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      {loading ? <p>Carregando…</p> : null}
       {error ? <p style={{ color: "#b91c1c" }}>{error}</p> : null}
 
       {stats ? (

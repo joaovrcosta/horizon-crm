@@ -128,6 +128,7 @@ export type EmailSignature = {
   id: string;
   userId: string;
   enabled: boolean;
+  replyToEmail: string | null;
   displayName: string | null;
   title: string | null;
   phone: string | null;
@@ -143,6 +144,7 @@ export type EmailSignature = {
 
 export type EmailSignatureInput = {
   enabled: boolean;
+  replyToEmail: string | null;
   displayName: string | null;
   title: string | null;
   phone: string | null;
@@ -154,6 +156,8 @@ export type EmailSignatureInput = {
   website: string | null;
   defaultIntro: string | null;
 };
+
+export const DEFAULT_EMAIL_REPLY_TO = "hello@halk.solutions";
 
 export const DEFAULT_EMAIL_LOGO_URL =
   "https://raw.githubusercontent.com/joaovrcosta/code-icons/main/halk-logo-blue-gradient.png";

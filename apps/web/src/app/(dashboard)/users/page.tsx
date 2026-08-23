@@ -6,6 +6,7 @@ import type { UserPublic } from "@horizon/shared";
 import { useAuth } from "@/components/auth-provider";
 import { apiFetch } from "@/lib/api-client";
 import { IconPlus, IconTrash } from "@/components/icons";
+import { UsersSkeleton } from "@/components/skeleton";
 
 export default function UsersPage() {
   const { user, can } = useAuth();
@@ -78,6 +79,10 @@ export default function UsersPage() {
     return null;
   }
 
+  if (loading) {
+    return <UsersSkeleton />;
+  }
+
   return (
     <div className="users-page">
       <div className="page-header">
@@ -89,7 +94,6 @@ export default function UsersPage() {
       </div>
 
       {error ? <p style={{ color: "#b91c1c" }}>{error}</p> : null}
-      {loading ? <p>Carregando…</p> : null}
 
       <table className="table">
         <thead>

@@ -6,6 +6,7 @@ import type { Prospect, ProspectStatus } from "@horizon/shared";
 import { PROSPECT_STATUSES, STATUS_LABELS } from "@horizon/shared";
 import { apiFetch } from "@/lib/api-client";
 import { formatDateTime, isOverdue } from "@/lib/prospect-utils";
+import { PipelineSkeleton } from "@/components/skeleton";
 
 export default function PipelinePage() {
   const router = useRouter();
@@ -63,6 +64,10 @@ export default function PipelinePage() {
     }
   }
 
+  if (loading) {
+    return <PipelineSkeleton />;
+  }
+
   return (
     <div className="pipeline-page">
       <div className="page-header">
@@ -73,7 +78,6 @@ export default function PipelinePage() {
       </div>
 
       {error ? <p style={{ color: "#b91c1c" }}>{error}</p> : null}
-      {loading ? <p>Carregando…</p> : null}
 
       <div className="kanban">
         {PROSPECT_STATUSES.map((status) => (

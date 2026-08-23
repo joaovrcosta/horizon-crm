@@ -2,16 +2,11 @@
 
 import { Suspense } from "react";
 import ProspectsPage from "./prospects-client";
+import { ProspectsSkeleton } from "@/components/skeleton";
 
 export default function Page() {
   return (
-    <Suspense
-      fallback={
-        <div className="detail-empty" style={{ minHeight: "100vh" }}>
-          Carregando prospects…
-        </div>
-      }
-    >
+    <Suspense fallback={<ProspectsSkeleton />}>
       <ProspectsPage />
     </Suspense>
   );

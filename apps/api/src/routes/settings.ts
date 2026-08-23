@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import type { ApiResponse, EmailSignature } from "@horizon/shared";
+import { DEFAULT_EMAIL_REPLY_TO } from "@horizon/shared";
 import { prisma } from "../lib/prisma";
 import { requireAuth } from "../middleware/auth";
 
@@ -14,8 +15,17 @@ const nullableText = z
     return t.length ? t : null;
   });
 
+const nullableEmail = z
+  .union([z.string().email().max(320), z.literal(""), z.null()])
+  .transform((v) => {
+    if (v === null || v === undefined) return null;
+    const t = String(v).trim();
+    return t.length ? t : null;
+  });
+
 const updateSchema = z.object({
   enabled: z.boolean(),
+  replyToEmail: nullableEmail,
   displayName: nullableText,
   title: nullableText,
   phone: nullableText,
@@ -44,6 +54,7 @@ function serialize(row: {
   id: string;
   userId: string;
   enabled: boolean;
+  replyToEmail: string | null;
   displayName: string | null;
   title: string | null;
   phone: string | null;
@@ -60,6 +71,7 @@ function serialize(row: {
     id: row.id,
     userId: row.userId,
     enabled: row.enabled,
+    replyToEmail: row.replyToEmail ?? DEFAULT_EMAIL_REPLY_TO,
     displayName: row.displayName,
     title: row.title,
     phone: row.phone,
@@ -80,6 +92,7 @@ function emptySignature(userId: string, userName?: string | null): EmailSignatur
     id: "",
     userId,
     enabled: false,
+    replyToEmail: DEFAULT_EMAIL_REPLY_TO,
     displayName: userName?.trim() || null,
     title: null,
     phone: null,
@@ -124,6 +137,7 @@ router.put("/email-signature", async (req, res, next) => {
       create: {
         userId,
         enabled: body.enabled,
+        replyToEmail: body.replyToEmail ?? DEFAULT_EMAIL_REPLY_TO,
         displayName: body.displayName,
         title: body.title,
         phone: body.phone,
@@ -137,6 +151,7 @@ router.put("/email-signature", async (req, res, next) => {
       },
       update: {
         enabled: body.enabled,
+        replyToEmail: body.replyToEmail ?? DEFAULT_EMAIL_REPLY_TO,
         displayName: body.displayName,
         title: body.title,
         phone: body.phone,

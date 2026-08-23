@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
+import { AppShellSkeleton } from "@/components/skeleton";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -16,11 +17,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [loading, user, router, pathname]);
 
   if (loading) {
-    return (
-      <div className="boot-screen">
-        <p>Carregando Horizon…</p>
-      </div>
-    );
+    return <AppShellSkeleton pathname={pathname} />;
   }
 
   if (!user) {

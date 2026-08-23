@@ -10,6 +10,7 @@ import {
   IconPlus,
   IconTrash,
 } from "@/components/icons";
+import { PromptsSkeleton } from "@/components/skeleton";
 
 const emptyForm = {
   title: "",
@@ -131,6 +132,10 @@ export default function PromptsPage() {
     }
   }
 
+  if (loading) {
+    return <PromptsSkeleton />;
+  }
+
   return (
     <div className="prompts-page">
       <div className="page-header">
@@ -164,7 +169,6 @@ export default function PromptsPage() {
       </div>
 
       {error ? <p style={{ color: "#b91c1c" }}>{error}</p> : null}
-      {loading ? <p>Carregando…</p> : null}
 
       <div className="prompt-grid">
         {prompts.map((prompt) => (
@@ -220,7 +224,7 @@ export default function PromptsPage() {
           </article>
         ))}
 
-        {!loading && prompts.length === 0 ? (
+        {prompts.length === 0 ? (
           <p style={{ color: "#6b7280" }}>
             Nenhum prompt no vault. Crie textos e links copiáveis para a equipe.
           </p>

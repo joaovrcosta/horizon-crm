@@ -38,12 +38,9 @@ export default function LoginForm() {
     }
   }
 
-  if (loading || user) {
-    return (
-      <div className="boot-screen">
-        <p>Carregando…</p>
-      </div>
-    );
+  // Sempre mostra o formulário — não esconde enquanto checa sessão
+  if (user) {
+    return <div className="login-page" aria-busy="true" />;
   }
 
   return (
