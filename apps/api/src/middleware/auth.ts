@@ -3,6 +3,7 @@ import type { PermissionKey } from "@horizon/shared";
 import { verifyAccessToken } from "../lib/auth";
 import { AppError } from "../lib/errors";
 import { getPermissionsForRole } from "../lib/permissions";
+import { prisma } from "../lib/prisma";
 
 export type AuthUser = {
   id: string;
@@ -27,21 +28,48 @@ export async function requireAuth(
   try {
     const header = req.headers.authorization;
     if (!header?.startsWith("Bearer ")) {
-      throw new AppError(401, "Não autenticado");
+      next(new AppError(401, "Não autenticado"));
+      return;
     }
 
     const token = header.slice("Bearer ".length).trim();
-    const payload = verifyAccessToken(token);
-    const permissions = await getPermissionsForRole(payload.roleSlug);
+    if (!token) {
+      next(new AppError(401, "Não autenticado"));
+      return;
+    }
+
+    let payload: { sub: string; email: string; roleSlug?: string; role?: string };
+    try {
+      payload = verifyAccessToken(token) as typeof payload;
+    } catch {
+      next(new AppError(401, "Token inválido ou expirado"));
+      return;
+    }
+
+    // Aceita JWT novo (roleSlug) ou legado (role) e, se faltar, busca no banco
+    let roleSlug = payload.roleSlug ?? payload.role;
+    if (!roleSlug) {
+      const user = await prisma.user.findUnique({
+        where: { id: payload.sub },
+        include: { role: { select: { slug: true } } },
+      });
+      if (!user) {
+        next(new AppError(401, "Usuário não encontrado"));
+        return;
+      }
+      roleSlug = user.role.slug;
+    }
+
+    const permissions = await getPermissionsForRole(roleSlug);
 
     req.user = {
       id: payload.sub,
       email: payload.email,
-      roleSlug: payload.roleSlug,
+      roleSlug,
       permissions,
     };
     next();
-  } catch {
-    next(new AppError(401, "Token inválido ou expirado"));
+  } catch (error) {
+    next(error);
   }
 }
