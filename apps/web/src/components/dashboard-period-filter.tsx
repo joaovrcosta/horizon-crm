@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { IconCalendar, IconChevronDown } from "@/components/icons";
 
-export type DashboardPeriodPreset = 7 | 14 | 30 | "custom";
+export type DashboardPeriodPreset = 1 | 7 | 14 | 30 | "custom";
 
 type DashboardPeriodFilterProps = {
   preset: DashboardPeriodPreset;
@@ -16,6 +16,7 @@ type DashboardPeriodFilterProps = {
 };
 
 const PRESETS: Array<{ value: DashboardPeriodPreset; label: string }> = [
+  { value: 1, label: "Hoje" },
   { value: 7, label: "7 dias" },
   { value: 14, label: "14 dias" },
   { value: 30, label: "30 dias" },

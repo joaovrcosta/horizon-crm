@@ -199,7 +199,7 @@ export type StatsPeriodRange = {
   compareLabel: string;
 };
 
-const STATS_PRESET_DAYS = [7, 14, 30] as const;
+const STATS_PRESET_DAYS = [1, 7, 14, 30] as const;
 
 export function resolveStatsPeriod(params: {
   days?: number;
@@ -237,8 +237,10 @@ export function resolveStatsPeriod(params: {
   const prevFrom = new Date(prevTo.getTime() - durationMs);
 
   const compareLabel = days
-    ? `${days} dias anteriores`
-    : "período anterior";
+    ? days === 1
+      ? "ontem"
+      : `dos ${days} dias anteriores`
+    : "do período anterior";
 
   return { days, from, to, prevFrom, prevTo, compareLabel };
 }

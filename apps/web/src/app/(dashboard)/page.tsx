@@ -32,19 +32,26 @@ function TrendPill({
   trend: MetricTrend;
   invert?: boolean;
 }) {
-  const positive = invert ? trend.percent <= 0 : trend.percent >= 0;
-  const tone =
-    trend.percent === 0 ? "muted" : positive ? "ok" : "bad";
+  const positive = invert ? trend.delta <= 0 : trend.delta >= 0;
+  const tone = trend.delta === 0 ? "muted" : positive ? "ok" : "bad";
 
   return (
     <span className={`metric-pill ${tone}`}>
-      {formatSigned(trend.percent)}%
+      {formatSigned(trend.delta)}
     </span>
   );
 }
 
-function trendHint(trend: MetricTrend, period: string) {
-  return `${formatSigned(trend.delta)} vs ${period}`;
+function trendHint(trend: MetricTrend, current: number, period: string) {
+  const previous = current - trend.delta;
+  return (
+    <>
+      <span className="metric-hint-num">{formatSigned(trend.delta)}</span>
+      {" vs "}
+      <span className="metric-hint-num">{previous}</span>
+      {` ${period}`}
+    </>
+  );
 }
 
 function buildStatsPath(
@@ -140,7 +147,11 @@ export default function DashboardPage() {
                 <TrendPill trend={stats.trends.total} />
               </div>
               <p className="metric-hint">
-                {trendHint(stats.trends.total, stats.period.compareLabel)}
+                {trendHint(
+                  stats.trends.total,
+                  stats.total,
+                  stats.period.compareLabel,
+                )}
               </p>
             </article>
 
@@ -156,7 +167,11 @@ export default function DashboardPage() {
                 <TrendPill trend={stats.trends.overdue} invert />
               </div>
               <p className="metric-hint">
-                {trendHint(stats.trends.overdue, stats.period.compareLabel)}
+                {trendHint(
+                  stats.trends.overdue,
+                  stats.overdueCount,
+                  stats.period.compareLabel,
+                )}
               </p>
             </article>
 
@@ -172,7 +187,11 @@ export default function DashboardPage() {
                 <TrendPill trend={stats.trends.dueToday} />
               </div>
               <p className="metric-hint">
-                {trendHint(stats.trends.dueToday, stats.period.compareLabel)}
+                {trendHint(
+                  stats.trends.dueToday,
+                  stats.dueTodayCount,
+                  stats.period.compareLabel,
+                )}
               </p>
             </article>
 
@@ -188,7 +207,11 @@ export default function DashboardPage() {
                 <TrendPill trend={stats.trends.wonThisMonth} />
               </div>
               <p className="metric-hint">
-                {trendHint(stats.trends.wonThisMonth, stats.period.compareLabel)}
+                {trendHint(
+                  stats.trends.wonThisMonth,
+                  stats.wonThisMonth,
+                  stats.period.compareLabel,
+                )}
               </p>
             </article>
           </div>

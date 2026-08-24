@@ -2222,6 +2222,11 @@ label .country-select {
   color: var(--text-subtle);
 }
 
+.metric-hint-num {
+  font-weight: 600;
+  color: var(--text);
+}
+
 .dashboard-header {
   align-items: flex-start;
 }
