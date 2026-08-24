@@ -92,7 +92,11 @@ export default function LoginForm() {
         />
 
         <button className="btn btn-primary btn-block" disabled={submitting}>
-          {submitting ? "Entrando…" : "Entrar"}
+          {submitting ? (
+            <span className="btn-spinner" aria-label="Entrando" />
+          ) : (
+            "Entrar"
+          )}
         </button>
       </form>
     </div>

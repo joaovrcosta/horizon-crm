@@ -28,7 +28,7 @@ const NAV = [
   { href: "/prospects", label: "Clientes", icon: IconProspects },
   { href: "/mail", label: "E-mails", icon: IconMail },
   { href: "/pipeline", label: "Funil", icon: IconPipeline },
-  { href: "/prompts", label: "E-mail templates", icon: IconPrompt },
+  { href: "/prompts", label: "Templates", icon: IconPrompt },
   { href: "/vaults", label: "Cofres", icon: IconVault },
 ] as const;
 
@@ -95,25 +95,6 @@ export function Sidebar({
         </button>
       </div>
 
-      <div className="sidebar-user-card" title={user?.email}>
-        <div className="avatar" aria-hidden>
-          {(user?.name ?? "?").slice(0, 1).toUpperCase()}
-        </div>
-        <div className="user-meta">
-          <strong>{user?.name}</strong>
-          <span>{user?.email}</span>
-        </div>
-        <button
-          type="button"
-          className="logout-btn"
-          onClick={handleLogout}
-          title="Sair"
-          aria-label="Sair"
-        >
-          <IconLogout size={15} />
-        </button>
-      </div>
-
       <div className="sidebar-compose">
         <ComposeSidebarButton
           collapsed={collapsed}
@@ -160,10 +141,30 @@ export function Sidebar({
       </nav>
 
       <div className="sidebar-footer">
+        <div className="sidebar-user-card" title={user?.email}>
+          <div className="avatar" aria-hidden>
+            {(user?.name ?? "?").slice(0, 1).toUpperCase()}
+          </div>
+          <div className="user-meta">
+            <strong>{user?.name}</strong>
+            <span>{user?.email}</span>
+          </div>
+          <button
+            type="button"
+            className="logout-btn"
+            onClick={handleLogout}
+            title="Sair"
+            aria-label="Sair"
+          >
+            <IconLogout size={15} />
+          </button>
+        </div>
+
         <Link
           href="/settings"
-          className={`nav-item nav-item-footer${pathname.startsWith("/settings") ? " active" : ""
-            }`}
+          className={`nav-item nav-item-footer${
+            pathname.startsWith("/settings") ? " active" : ""
+          }`}
           title="Configurações"
           onClick={onMobileClose}
         >

@@ -210,6 +210,21 @@ textarea {
   font-size: var(--text-small);
 }
 
+.btn-spinner {
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: btn-spin 0.7s linear infinite;
+}
+
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -376,11 +391,9 @@ html:not([data-theme="light"]) .sidebar {
   grid-template-columns: auto 1fr auto;
   gap: 0.7rem;
   align-items: center;
-  margin: 0 0.15rem 0.95rem;
-  padding: 0.7rem 0.75rem;
+  margin: 0 0.15rem 0.55rem;
+  padding: 0.7rem 0rem;
   border-radius: 14px;
-  background: var(--sidebar-card);
-  border: 1px solid var(--sidebar-border);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
@@ -679,7 +692,7 @@ html:not([data-theme="light"]) .sidebar {
 .logout-btn {
   border: none;
   background: transparent;
-  color: var(--sidebar-fg-muted);
+  color: #f87171;
   cursor: pointer;
   padding: 0.35rem;
   display: inline-flex;
@@ -687,8 +700,8 @@ html:not([data-theme="light"]) .sidebar {
 }
 
 .logout-btn:hover {
-  color: var(--sidebar-fg);
-  background: var(--sidebar-hover);
+  color: #fb7185;
+  background: color-mix(in srgb, #fb7185 14%, transparent);
 }
 
 .dashboard-main {
@@ -873,7 +886,7 @@ html:not([data-theme="light"]) .sidebar {
   width: 100%;
 }
 
-.list-toolbar-row > .filters-dropdown .btn {
+.list-toolbar-row>.filters-dropdown .btn {
   width: auto;
 }
 
@@ -1103,7 +1116,7 @@ button.list-section-label .chevron-open {
   white-space: nowrap;
 }
 
-.list-item > span {
+.list-item>span {
   font-size: 0.8rem;
   color: var(--text-subtle);
   padding-right: 1.6rem;
@@ -1113,7 +1126,7 @@ button.list-section-label .chevron-open {
   white-space: nowrap;
 }
 
-.list-item.selected > span {
+.list-item.selected>span {
   color: var(--text-muted);
 }
 
@@ -1943,8 +1956,8 @@ label .country-select {
   transition: border-color 0.15s ease, background 0.15s ease;
 }
 
-.vault-list-item + .vault-list-item,
-.vault-list li + li .vault-list-item {
+.vault-list-item+.vault-list-item,
+.vault-list li+li .vault-list-item {
   margin-top: var(--space-2);
 }
 
@@ -2181,18 +2194,22 @@ label .country-select {
   background: rgba(122, 115, 255, 0.2);
   color: #c4c0ff;
 }
+
 .status-CONTACTED {
   background: rgba(52, 211, 153, 0.18);
   color: #6ee7b7;
 }
+
 .status-NEGOTIATING {
   background: rgba(34, 211, 238, 0.16);
   color: #67e8f9;
 }
+
 .status-WON {
   background: rgba(52, 211, 153, 0.16);
   color: #6ee7b7;
 }
+
 .status-LOST {
   background: rgba(251, 113, 133, 0.16);
   color: #fb7185;
@@ -3035,7 +3052,7 @@ html[data-theme="light"] .compose-footer {
   gap: 1rem;
 }
 
-.mail-reading-meta > time {
+.mail-reading-meta>time {
   flex-shrink: 0;
   font-size: 0.78rem;
   color: var(--text-subtle);
@@ -3116,6 +3133,7 @@ html[data-theme="light"] .compose-footer {
 }
 
 @media (max-width: 640px) {
+
   .mail-table-head .mail-col-to,
   .mail-tr .mail-col-to {
     display: none;
@@ -4016,7 +4034,7 @@ html[data-theme="light"] .mail-search input {
     padding: 0.7rem 0;
   }
 
-  .kv-row + .kv-row {
+  .kv-row+.kv-row {
     border-top: 1px solid var(--border);
   }
 
@@ -4474,6 +4492,7 @@ html[data-theme="light"] .login-card input {
   0% {
     background-position: 100% 0;
   }
+
   100% {
     background-position: -100% 0;
   }
@@ -4482,12 +4501,10 @@ html[data-theme="light"] .login-card input {
 .skeleton {
   display: block;
   border-radius: var(--radius);
-  background: linear-gradient(
-    90deg,
-    var(--surface-2) 0%,
-    var(--border) 45%,
-    var(--surface-2) 90%
-  );
+  background: linear-gradient(90deg,
+      var(--surface-2) 0%,
+      var(--border) 45%,
+      var(--surface-2) 90%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.2s ease-in-out infinite;
 }
@@ -4502,12 +4519,10 @@ html[data-theme="light"] .login-card input {
 }
 
 .sidebar-skeleton .skeleton {
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.05) 0%,
-    rgba(255, 255, 255, 0.11) 45%,
-    rgba(255, 255, 255, 0.05) 90%
-  );
+  background: linear-gradient(90deg,
+      rgba(255, 255, 255, 0.05) 0%,
+      rgba(255, 255, 255, 0.11) 45%,
+      rgba(255, 255, 255, 0.05) 90%);
   background-size: 200% 100%;
 }
 
@@ -4673,10 +4688,9 @@ html[data-theme="light"] .login-card input {
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
-
-
