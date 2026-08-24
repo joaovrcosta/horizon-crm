@@ -1645,12 +1645,18 @@ label .country-select {
   align-items: start;
 }
 
-.settings-reply {
+.settings-reply,
+.settings-password {
   grid-column: 1 / -1;
 }
 
-.settings-reply .form-grid {
+.settings-reply .form-grid,
+.settings-password .form-grid {
   max-width: 420px;
+}
+
+.settings-email-form {
+  display: contents;
 }
 
 .panel {

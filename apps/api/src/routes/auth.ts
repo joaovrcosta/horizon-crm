@@ -8,6 +8,7 @@ import {
   createMemberUser,
   createRefreshTokenValue,
   getRefreshExpiryDate,
+  hashPassword,
   hashToken,
   signAccessToken,
   toUserPublic,
@@ -34,6 +35,21 @@ const registerSchema = z.object({
   password: z.string().min(8).max(128),
 });
 
+const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1).max(128),
+    newPassword: z.string().min(8).max(128),
+    confirmPassword: z.string().min(8).max(128),
+  })
+  .refine((v) => v.newPassword === v.confirmPassword, {
+    message: "A confirmação não confere com a nova senha",
+    path: ["confirmPassword"],
+  })
+  .refine((v) => v.currentPassword !== v.newPassword, {
+    message: "A nova senha deve ser diferente da atual",
+    path: ["newPassword"],
+  });
+
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
@@ -48,6 +64,16 @@ const registerLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Muitas tentativas de cadastro. Tente novamente mais tarde." },
+});
+
+const changePasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: "Muitas tentativas de alteração de senha. Tente novamente mais tarde.",
+  },
 });
 
 function refreshCookieOptions(): import("express").CookieOptions {
@@ -279,5 +305,64 @@ router.get("/me", requireAuth, async (req, res, next) => {
     next(error);
   }
 });
+
+router.post(
+  "/change-password",
+  requireAuth,
+  changePasswordLimiter,
+  async (req, res, next) => {
+    try {
+      const body = changePasswordSchema.parse(req.body);
+      const userId = req.user!.id;
+
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, passwordHash: true },
+      });
+
+      if (!user) {
+        throw new AppError(401, "Usuário não encontrado");
+      }
+
+      if (!(await verifyPassword(body.currentPassword, user.passwordHash))) {
+        throw new AppError(400, "Senha atual incorreta");
+      }
+
+      await prisma.user.update({
+        where: { id: userId },
+        data: { passwordHash: await hashPassword(body.newPassword) },
+      });
+
+      // Revoga sessões antigas; a sessão atual continua via access token até expirar
+      await prisma.refreshToken.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+
+      const rawRefresh = createRefreshTokenValue();
+      const record = await prisma.refreshToken.create({
+        data: {
+          userId,
+          tokenHash: hashToken(rawRefresh),
+          expiresAt: getRefreshExpiryDate(),
+        },
+      });
+      setRefreshCookie(res, `${record.id}.${rawRefresh}`);
+
+      res.json({ data: { ok: true } } satisfies ApiResponse<{ ok: boolean }>);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        next(
+          new AppError(
+            400,
+            error.issues[0]?.message ?? "Dados inválidos",
+          ),
+        );
+        return;
+      }
+      next(error);
+    }
+  },
+);
 
 export default router;

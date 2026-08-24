@@ -10,6 +10,14 @@ export function SettingsSkeleton() {
         </div>
       </header>
       <div className="settings-layout">
+        <section className="panel settings-password">
+          <Skeleton width={200} height={22} style={{ marginBottom: 12 }} />
+          <Skeleton width="60%" height={14} style={{ marginBottom: 16 }} />
+          <Skeleton width={420} height={38} radius={6} style={{ marginBottom: 12 }} />
+          <Skeleton width={420} height={38} radius={6} style={{ marginBottom: 12 }} />
+          <Skeleton width={420} height={38} radius={6} style={{ marginBottom: 16 }} />
+          <Skeleton width={140} height={36} radius={6} />
+        </section>
         <section className="panel settings-reply">
           <Skeleton width={180} height={22} style={{ marginBottom: 12 }} />
           <Skeleton width="70%" height={14} style={{ marginBottom: 16 }} />

@@ -66,6 +66,15 @@ export default function SettingsPage() {
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
 
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSaved, setPasswordSaved] = useState(false);
+
   async function load() {
     if (!user) return;
     setLoading(true);
@@ -117,6 +126,47 @@ export default function SettingsPage() {
     }
   }
 
+  async function changePassword(event: FormEvent) {
+    event.preventDefault();
+    setPasswordSaving(true);
+    setPasswordError("");
+    setPasswordSaved(false);
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordError("A confirmação não confere com a nova senha");
+      setPasswordSaving(false);
+      return;
+    }
+    if (passwordForm.newPassword.length < 8) {
+      setPasswordError("A nova senha deve ter pelo menos 8 caracteres");
+      setPasswordSaving(false);
+      return;
+    }
+
+    try {
+      await apiFetch<{ ok: boolean }>("/auth/change-password", {
+        method: "POST",
+        body: {
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword,
+          confirmPassword: passwordForm.confirmPassword,
+        },
+      });
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setPasswordSaved(true);
+    } catch (err) {
+      setPasswordError(
+        err instanceof Error ? err.message : "Erro ao redefinir senha",
+      );
+    } finally {
+      setPasswordSaving(false);
+    }
+  }
+
   const previewSig: EmailSignature = {
     id: "preview",
     userId: user?.id ?? "",
@@ -145,15 +195,94 @@ export default function SettingsPage() {
         <div>
           <h1>Configurações</h1>
           <p>
-            Configuração pessoal da sua conta ({user?.email}). Cada usuário tem
-            sua própria assinatura e corpo padrão de e-mail.
+            Configuração pessoal da sua conta ({user?.email}). Senha,
+            assinatura e corpo padrão de e-mail.
           </p>
         </div>
       </header>
 
       {error ? <p className="form-error">{error}</p> : null}
 
-      <form className="settings-layout" onSubmit={save}>
+      <div className="settings-layout">
+        <section className="panel settings-password">
+          <h2>Redefinição de senha</h2>
+          <p className="panel-desc">
+            Altere a senha de acesso à sua conta. Você precisará da senha
+            atual para confirmar.
+          </p>
+
+          <form className="form-grid" onSubmit={changePassword}>
+            <label className="span-2">
+              Senha atual
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={passwordForm.currentPassword}
+                onChange={(e) =>
+                  setPasswordForm({
+                    ...passwordForm,
+                    currentPassword: e.target.value,
+                  })
+                }
+                required
+              />
+            </label>
+            <label className="span-2">
+              Nova senha
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={passwordForm.newPassword}
+                onChange={(e) =>
+                  setPasswordForm({
+                    ...passwordForm,
+                    newPassword: e.target.value,
+                  })
+                }
+                minLength={8}
+                required
+              />
+            </label>
+            <label className="span-2">
+              Confirmar nova senha
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={passwordForm.confirmPassword}
+                onChange={(e) =>
+                  setPasswordForm({
+                    ...passwordForm,
+                    confirmPassword: e.target.value,
+                  })
+                }
+                minLength={8}
+                required
+              />
+            </label>
+
+            {passwordError ? (
+              <p className="form-error span-2">{passwordError}</p>
+            ) : null}
+
+            <div
+              className="modal-actions span-2"
+              style={{ justifyContent: "flex-start" }}
+            >
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={passwordSaving}
+              >
+                {passwordSaving ? "Salvando…" : "Redefinir senha"}
+              </button>
+              {passwordSaved ? (
+                <span className="save-ok">Senha atualizada.</span>
+              ) : null}
+            </div>
+          </form>
+        </section>
+
+        <form className="settings-email-form" onSubmit={save}>
         <section className="panel settings-reply">
           <h2>Respostas de e-mail</h2>
           <p className="panel-desc">
@@ -325,7 +454,8 @@ export default function SettingsPage() {
             intro={form.defaultIntro}
           />
         </section>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }
