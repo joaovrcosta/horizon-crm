@@ -2147,6 +2147,343 @@ label .country-select {
   width: min(720px, 100%);
 }
 
+/* Gmail-like email compose (adapts to theme) */
+.compose-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: transparent;
+}
+
+.compose-window {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  width: min(560px, calc(100vw - 1.5rem));
+  height: min(640px, calc(100vh - 2.5rem));
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px 12px 0 0;
+  box-shadow: var(--shadow-popover);
+  overflow: hidden;
+  z-index: 51;
+}
+
+.compose-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.compose-header strong {
+  font-size: 0.95rem;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.compose-icon-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.compose-icon-btn:hover {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  color: var(--text);
+}
+
+.compose-icon-btn.danger:hover {
+  background: color-mix(in srgb, var(--danger) 16%, transparent);
+  color: var(--danger);
+}
+
+.compose-field {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 2.75rem;
+  padding: 0.35rem 1rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.compose-label {
+  flex-shrink: 0;
+  min-width: 3.6rem;
+  font-size: 0.85rem;
+  color: var(--text-subtle);
+}
+
+.compose-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--text);
+  padding: 0.35rem 0;
+}
+
+.compose-input option {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.compose-input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.compose-to {
+  align-items: flex-start;
+  padding-top: 0.65rem;
+  padding-bottom: 0.65rem;
+}
+
+.compose-to .compose-label {
+  padding-top: 0.45rem;
+}
+
+.compose-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  max-width: 100%;
+  padding: 0.2rem 0.55rem 0.2rem 0.2rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+
+.compose-chip-avatar {
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--brand);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.compose-chip-text {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+  line-height: 1.15;
+  padding-right: 0.2rem;
+}
+
+.compose-chip-text strong {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compose-chip-text em {
+  font-style: normal;
+  font-size: 0.68rem;
+  color: var(--text-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compose-body-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  padding: 0.75rem 1rem 0.35rem;
+}
+
+.compose-body {
+  flex: 1;
+  min-height: 180px;
+  width: 100%;
+  border: 0;
+  resize: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--text);
+  padding: 0;
+}
+
+.compose-body::placeholder {
+  color: var(--text-subtle);
+}
+
+.compose-signature {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--border-strong);
+}
+
+.compose-signature-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 1rem 0.35rem;
+  font-size: 0.78rem;
+  color: var(--text-subtle);
+  flex-shrink: 0;
+}
+
+.compose-hint {
+  margin: 0 1rem 0.35rem;
+  font-size: 0.78rem;
+  flex-shrink: 0;
+}
+
+.compose-hint.ok {
+  color: var(--success);
+}
+
+.compose-hint.error {
+  color: var(--danger);
+}
+
+.compose-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem 0.9rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+.compose-footer-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.compose-send {
+  appearance: none;
+  border: 0;
+  background: var(--brand);
+  color: #fff;
+  font: inherit;
+  font-weight: 650;
+  font-size: 0.9rem;
+  padding: 0.55rem 1.35rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 120ms ease, opacity 120ms ease;
+}
+
+.compose-send:hover:not(:disabled) {
+  background: var(--brand-hover);
+}
+
+.compose-send:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+html[data-theme="light"] .compose-window {
+  background: #fff;
+  color: #202124;
+  border-color: #e6e6e6;
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.28),
+    0 2px 8px rgba(0, 0, 0, 0.14);
+}
+
+html[data-theme="light"] .compose-header {
+  background: #f2f2f2;
+  border-bottom-color: #e6e6e6;
+}
+
+html[data-theme="light"] .compose-header strong {
+  color: #3c4043;
+}
+
+html[data-theme="light"] .compose-icon-btn {
+  color: #5f6368;
+}
+
+html[data-theme="light"] .compose-icon-btn:hover {
+  background: rgba(60, 64, 67, 0.08);
+  color: #202124;
+}
+
+html[data-theme="light"] .compose-field {
+  border-bottom-color: #e8eaed;
+}
+
+html[data-theme="light"] .compose-label,
+html[data-theme="light"] .compose-signature-toggle,
+html[data-theme="light"] .compose-chip-text em,
+html[data-theme="light"] .compose-body::placeholder {
+  color: #5f6368;
+}
+
+html[data-theme="light"] .compose-input,
+html[data-theme="light"] .compose-body,
+html[data-theme="light"] .compose-chip-text strong {
+  color: #202124;
+}
+
+html[data-theme="light"] .compose-chip {
+  background: #fff;
+  border-color: #dadce0;
+}
+
+html[data-theme="light"] .compose-chip-avatar {
+  background: #1a73e8;
+}
+
+html[data-theme="light"] .compose-signature {
+  border-top-color: #dadce0;
+}
+
+html[data-theme="light"] .compose-footer {
+  background: #fff;
+  border-top-color: #e8eaed;
+}
+
+@media (max-width: 720px) {
+  .compose-window {
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: min(92vh, 720px);
+    border-radius: 14px 14px 0 0;
+  }
+}
+
 .form-grid-2 {
   grid-template-columns: 1fr 1fr;
 }

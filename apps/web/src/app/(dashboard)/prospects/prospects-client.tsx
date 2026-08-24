@@ -46,6 +46,7 @@ import {
   IconPlus,
   IconTrash,
   IconWhatsApp,
+  IconX,
 } from "@/components/icons";
 
 type FormState = {
@@ -1300,122 +1301,148 @@ export default function ProspectsPage() {
 
       {showEmailModal && selected?.email ? (
         <div
-          className="modal-backdrop"
+          className="compose-backdrop"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowEmailModal(false);
           }}
         >
-          <div className="modal modal-wide" role="dialog" aria-modal="true">
-            <h2>Enviar e-mail</h2>
-            <div className="form-grid">
-              <label>
-                Para
-                <input type="email" value={selected.email} readOnly />
-              </label>
-              <label>
-                Usar template
-                <select
-                  value={emailPromptId}
-                  onChange={(e) => applyEmailPrompt(e.target.value)}
-                  disabled={loadingPrompts}
-                >
-                  <option value="">
-                    {loadingPrompts
-                      ? "Carregando…"
-                      : "Nenhum (corpo padrão / manual)"}
-                  </option>
-                  {prompts.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.title}
-                      {p.visibility === "PUBLIC" ? " · público" : ""}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Assunto
-                <input
-                  value={emailSubject}
-                  onChange={(e) => setEmailSubject(e.target.value)}
-                  placeholder="Assunto do e-mail"
-                />
-              </label>
-              <label>
-                Corpo
-                <textarea
-                  rows={8}
-                  value={emailBody}
-                  onChange={(e) => setEmailBody(e.target.value)}
-                  placeholder="Escreva o e-mail, use o corpo padrão das configs ou um template."
-                />
-              </label>
-              {emailSignature ? (
-                <>
-                  <label className="checkbox-row">
-                    <input
-                      type="checkbox"
-                      checked={includeSignature && emailSignature.enabled}
-                      disabled={!emailSignature.enabled}
-                      onChange={(e) => setIncludeSignature(e.target.checked)}
-                    />
-                    Incluir assinatura
-                    {!emailSignature.enabled
-                      ? " (desativada em Configurações)"
-                      : ""}
-                  </label>
-                  {includeSignature && emailSignature.enabled ? (
-                    <EmailSignaturePreview
-                      signature={emailSignature}
-                      fallbackName={user?.name}
-                      compact
-                    />
-                  ) : null}
-                </>
-              ) : null}
-              <p className="field-hint">
-                O e-mail é enviado pela API (Resend) com HTML e logo — sem
-                copiar/colar. Ajuste a assinatura em{" "}
-                <a href="/settings">Configurações</a>.
-              </p>
-              {emailClipboardHint ? (
-                <p
-                  className={
-                    emailClipboardHint.toLowerCase().includes("sucesso") ||
-                    emailClipboardHint.toLowerCase().includes("copiada")
-                      ? "save-ok"
-                      : "form-error"
-                  }
-                >
-                  {emailClipboardHint}
-                </p>
-              ) : null}
-            </div>
-            <div className="modal-actions">
+          <div
+            className="compose-window"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Nova mensagem"
+          >
+            <header className="compose-header">
+              <strong>Nova mensagem</strong>
               <button
                 type="button"
-                className="btn btn-secondary"
+                className="compose-icon-btn"
+                aria-label="Fechar"
                 onClick={() => setShowEmailModal(false)}
               >
-                Fechar
+                <IconX size={16} />
               </button>
-              {emailSignature?.enabled ? (
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => void copySignatureOnly()}
-                >
-                  Copiar assinatura
-                </button>
+            </header>
+
+            <div className="compose-field compose-to">
+              <span className="compose-label">Para</span>
+              <div className="compose-chip">
+                <span className="compose-chip-avatar" aria-hidden>
+                  {selected.name.slice(0, 1).toUpperCase()}
+                </span>
+                <span className="compose-chip-text">
+                  <strong>{selected.name}</strong>
+                  <em>{selected.email}</em>
+                </span>
+              </div>
+            </div>
+
+            <div className="compose-field">
+              <span className="compose-label">Assunto</span>
+              <input
+                className="compose-input"
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+                placeholder="Assunto"
+              />
+            </div>
+
+            <div className="compose-field compose-template">
+              <span className="compose-label">Template</span>
+              <select
+                className="compose-input"
+                value={emailPromptId}
+                onChange={(e) => applyEmailPrompt(e.target.value)}
+                disabled={loadingPrompts}
+              >
+                <option value="">
+                  {loadingPrompts
+                    ? "Carregando…"
+                    : "Nenhum (escrever manualmente)"}
+                </option>
+                {prompts.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.title}
+                    {p.visibility === "PUBLIC" ? " · público" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="compose-body-wrap">
+              <textarea
+                className="compose-body"
+                value={emailBody}
+                onChange={(e) => setEmailBody(e.target.value)}
+                placeholder="Escreva sua mensagem…"
+              />
+              {emailSignature && includeSignature && emailSignature.enabled ? (
+                <div className="compose-signature">
+                  <EmailSignaturePreview
+                    signature={emailSignature}
+                    fallbackName={user?.name}
+                    compact
+                  />
+                </div>
               ) : null}
+            </div>
+
+            {emailSignature ? (
+              <label className="compose-signature-toggle">
+                <input
+                  type="checkbox"
+                  checked={includeSignature && emailSignature.enabled}
+                  disabled={!emailSignature.enabled}
+                  onChange={(e) => setIncludeSignature(e.target.checked)}
+                />
+                Incluir assinatura
+                {!emailSignature.enabled ? " (desativada)" : ""}
+              </label>
+            ) : null}
+
+            {emailClipboardHint ? (
+              <p
+                className={
+                  emailClipboardHint.toLowerCase().includes("sucesso") ||
+                  emailClipboardHint.toLowerCase().includes("copiada")
+                    ? "compose-hint ok"
+                    : "compose-hint error"
+                }
+              >
+                {emailClipboardHint}
+              </p>
+            ) : null}
+
+            <footer className="compose-footer">
               <button
                 type="button"
-                className="btn btn-primary"
+                className="compose-send"
                 disabled={openingEmail}
                 onClick={() => void sendEmailViaResend()}
               >
-                {openingEmail ? "Enviando…" : "Enviar e-mail"}
+                {openingEmail ? "Enviando…" : "Enviar"}
               </button>
-            </div>
+              <div className="compose-footer-tools">
+                {emailSignature?.enabled ? (
+                  <button
+                    type="button"
+                    className="compose-icon-btn"
+                    title="Copiar assinatura"
+                    onClick={() => void copySignatureOnly()}
+                  >
+                    <IconMail size={16} />
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="compose-icon-btn danger"
+                  title="Descartar"
+                  onClick={() => setShowEmailModal(false)}
+                >
+                  <IconTrash size={16} />
+                </button>
+              </div>
+            </footer>
           </div>
         </div>
       ) : null}
