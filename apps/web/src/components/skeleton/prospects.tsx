@@ -116,10 +116,10 @@ export function ProspectsSkeleton() {
         </div>
 
         <div className="list-toolbar">
-          <Skeleton width="100%" height={38} radius={6} />
-          <Skeleton width="100%" height={38} radius={6} />
-          <Skeleton width="100%" height={38} radius={6} />
-          <Skeleton width="100%" height={38} radius={6} />
+          <div className="list-toolbar-row">
+            <Skeleton height={38} radius={6} style={{ flex: 1 }} />
+            <Skeleton width={96} height={38} radius={6} />
+          </div>
         </div>
 
         <div className="list-items">

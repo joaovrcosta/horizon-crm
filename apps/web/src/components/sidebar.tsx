@@ -65,15 +65,16 @@ export function Sidebar() {
     <aside className={`sidebar${collapsed ? " collapsed" : ""}`}>
       <div className="sidebar-brand-row">
         <div className="sidebar-brand" title="Horizon">
-          {collapsed ? (
-            <>
-              h<span>.</span>
-            </>
-          ) : (
-            <>
-              horizon<span>.</span>
-            </>
-          )}
+          <img
+            src="/brand/horizon-logo.svg"
+            alt="Horizon"
+            className="sidebar-brand-logo"
+            width={85}
+            height={28}
+          />
+          {!collapsed ? (
+            <span className="sidebar-brand-text">horizon.</span>
+          ) : null}
         </div>
         <button
           type="button"

@@ -56,8 +56,15 @@ export default function LoginForm() {
       </button>
 
       <form className="login-card" onSubmit={onSubmit}>
-        <h1>
-          horizon<span style={{ color: "var(--cyan)" }}>.</span>
+        <h1 className="login-brand">
+          <img
+            src="/brand/horizon-logo.svg"
+            alt=""
+            className="login-brand-logo"
+            width={85}
+            height={32}
+          />
+          <span className="login-brand-text">horizon.</span>
         </h1>
         <p>Acesse o painel da agência</p>
 

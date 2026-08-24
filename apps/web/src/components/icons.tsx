@@ -163,6 +163,22 @@ export function IconSearch(props: IconProps) {
   );
 }
 
+export function IconFilter(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M4 5h16l-6 7.5V19l-4 2v-8.5L4 5z" />
+    </svg>
+  );
+}
+
+export function IconChevronDown(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
+
 export function IconMail(props: IconProps) {
   return (
     <svg {...base(props)}>

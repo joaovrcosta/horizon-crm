@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type {
   ActivityType,
@@ -32,7 +32,9 @@ import {
   toWhatsAppLink,
 } from "@/lib/prospect-utils";
 import {
+  IconChevronDown,
   IconEdit,
+  IconFilter,
   IconMail,
   IconMapPin,
   IconPhone,
@@ -117,6 +119,8 @@ export default function ProspectsPage() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [dueFilter, setDueFilter] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const filtersRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -200,9 +204,32 @@ export default function ProspectsPage() {
   }, [statusFilter, dueFilter]);
 
   useEffect(() => {
+    if (!filtersOpen) return;
+    function onPointerDown(event: MouseEvent) {
+      if (
+        filtersRef.current &&
+        !filtersRef.current.contains(event.target as Node)
+      ) {
+        setFiltersOpen(false);
+      }
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setFiltersOpen(false);
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [filtersOpen]);
+
+  useEffect(() => {
     if (selectedId) void loadActivities(selectedId);
     else setActivities([]);
   }, [selectedId]);
+
+  const activeFilterCount = [statusFilter, dueFilter].filter(Boolean).length;
 
   function openCreateModal() {
     setEditingId(null);
@@ -462,41 +489,90 @@ export default function ProspectsPage() {
         </div>
 
         <div className="list-toolbar">
-          <input
-            placeholder="Buscar nome, telefone, email…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") void load();
-            }}
-          />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="">Todos os status</option>
-            {PROSPECT_STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {STATUS_LABELS[status]}
-              </option>
-            ))}
-          </select>
-          <select
-            value={dueFilter}
-            onChange={(e) => setDueFilter(e.target.value)}
-          >
-            <option value="">Qualquer follow-up</option>
-            <option value="overdue">Atrasados</option>
-            <option value="today">Hoje</option>
-            <option value="upcoming">Próximos</option>
-          </select>
-          <button
-            className="btn btn-secondary"
-            type="button"
-            onClick={() => void load()}
-          >
-            Filtrar
-          </button>
+          <div className="list-toolbar-row">
+            <input
+              className="list-search"
+              placeholder="Buscar nome, telefone, email…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void load();
+              }}
+            />
+            <div className="filters-dropdown" ref={filtersRef}>
+              <button
+                type="button"
+                className={`btn btn-secondary filters-trigger${activeFilterCount ? " has-filters" : ""}`}
+                aria-expanded={filtersOpen}
+                aria-haspopup="true"
+                onClick={() => setFiltersOpen((open) => !open)}
+              >
+                <IconFilter size={15} />
+                <span>Filtros</span>
+                {activeFilterCount > 0 ? (
+                  <span className="filters-badge">{activeFilterCount}</span>
+                ) : null}
+                <IconChevronDown
+                  size={14}
+                  className={filtersOpen ? "chevron-open" : undefined}
+                />
+              </button>
+
+              {filtersOpen ? (
+                <div className="filters-panel" role="dialog" aria-label="Filtros">
+                  <label>
+                    Status
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                    >
+                      <option value="">Todos os status</option>
+                      {PROSPECT_STATUSES.map((status) => (
+                        <option key={status} value={status}>
+                          {STATUS_LABELS[status]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Follow-up
+                    <select
+                      value={dueFilter}
+                      onChange={(e) => setDueFilter(e.target.value)}
+                    >
+                      <option value="">Qualquer follow-up</option>
+                      <option value="overdue">Atrasados</option>
+                      <option value="today">Hoje</option>
+                      <option value="upcoming">Próximos</option>
+                    </select>
+                  </label>
+                  <div className="filters-panel-actions">
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      disabled={!activeFilterCount}
+                      onClick={() => {
+                        setStatusFilter("");
+                        setDueFilter("");
+                      }}
+                    >
+                      Limpar
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => {
+                        setFiltersOpen(false);
+                        void load();
+                      }}
+                    >
+                      Aplicar
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
         </div>
 
         <div className="list-items">
