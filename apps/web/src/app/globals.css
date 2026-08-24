@@ -1691,17 +1691,32 @@ label .country-select {
 }
 
 .signature-preview {
-  background: #ffffff;
-  color: #111111;
-  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 16px;
   padding: var(--space-5) var(--space-4);
-  border: 1px solid var(--border);
+  border: 2px dotted var(--border-strong);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.12),
+    0 10px 24px rgba(0, 0, 0, 0.2);
   overflow: auto;
+  width: 100%;
 }
 
 .signature-preview-sm {
   padding: var(--space-4);
   max-height: 280px;
+  border-radius: 14px;
+}
+
+html[data-theme="light"] .signature-preview {
+  background: #ffffff;
+  color: #111111;
+  border-color: #94a3b8;
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.04),
+    0 2px 4px rgba(15, 23, 42, 0.06),
+    0 10px 24px rgba(15, 23, 42, 0.1);
 }
 
 .signature-intro {
@@ -1709,13 +1724,42 @@ label .country-select {
   white-space: pre-wrap;
   font-family: Georgia, "Times New Roman", Times, serif;
   font-size: 0.95rem;
-  color: #111;
+  color: var(--text);
   line-height: 1.5;
 }
 
 .signature-react-email,
 .signature-html {
-  color: #111;
+  color: var(--text);
+}
+
+/* Prévia: forçar tema (inline do React Email é #111; inherit pega o pai errado) */
+.signature-preview .signature-react-email,
+.signature-preview .signature-react-email *:not(a),
+.signature-preview .signature-html {
+  color: var(--text) !important;
+}
+
+.signature-preview .signature-react-email a,
+.signature-preview .signature-react-email a * {
+  color: #93c5fd !important;
+}
+
+html[data-theme="light"] .signature-intro,
+html[data-theme="light"] .signature-react-email,
+html[data-theme="light"] .signature-html {
+  color: #111111;
+}
+
+html[data-theme="light"] .signature-preview .signature-react-email,
+html[data-theme="light"] .signature-preview .signature-react-email *:not(a),
+html[data-theme="light"] .signature-preview .signature-html {
+  color: #111111 !important;
+}
+
+html[data-theme="light"] .signature-preview .signature-react-email a,
+html[data-theme="light"] .signature-preview .signature-react-email a * {
+  color: #1a73e8 !important;
 }
 
 .signature-react-email img,
