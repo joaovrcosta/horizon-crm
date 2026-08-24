@@ -815,6 +815,28 @@ textarea {
   letter-spacing: 0;
 }
 
+button.list-section-label {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+button.list-section-label svg {
+  margin-left: auto;
+  flex-shrink: 0;
+  opacity: 0.65;
+  transition: transform 0.15s ease;
+}
+
+button.list-section-label .chevron-open {
+  transform: rotate(180deg);
+}
+
 .list-empty {
   margin: 0;
   padding: 0.9rem var(--space-4);

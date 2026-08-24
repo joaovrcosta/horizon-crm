@@ -133,6 +133,7 @@ export default function ProspectsPage() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [languageFilter, setLanguageFilter] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [closedOpen, setClosedOpen] = useState(false);
   const filtersRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [formError, setFormError] = useState("");
@@ -692,23 +693,37 @@ export default function ProspectsPage() {
 
           {!loading && closed.length > 0 ? (
             <>
-              <div className="list-section-label">
+              <button
+                type="button"
+                className="list-section-label"
+                aria-expanded={closedOpen}
+                onClick={() => setClosedOpen((open) => !open)}
+              >
                 Encerrados <span className="count">{closed.length}</span>
-              </div>
-              {closed.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  className={`list-item${selectedId === p.id ? " selected" : ""}`}
-                  onClick={() => setSelectedId(p.id)}
-                >
-                  {p.country ? (
-                    <CountryFlag code={p.country} className="list-item-flag" />
-                  ) : null}
-                  <strong>{p.name}</strong>
-                  <span>{p.address || "—"}</span>
-                </button>
-              ))}
+                <IconChevronDown
+                  size={12}
+                  className={closedOpen ? "chevron-open" : undefined}
+                />
+              </button>
+              {closedOpen
+                ? closed.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      className={`list-item${selectedId === p.id ? " selected" : ""}`}
+                      onClick={() => setSelectedId(p.id)}
+                    >
+                      {p.country ? (
+                        <CountryFlag
+                          code={p.country}
+                          className="list-item-flag"
+                        />
+                      ) : null}
+                      <strong>{p.name}</strong>
+                      <span>{p.address || "—"}</span>
+                    </button>
+                  ))
+                : null}
             </>
           ) : null}
 
