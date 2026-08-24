@@ -502,7 +502,7 @@ export function ComposeSidebarButton({
       aria-label="Compose"
     >
       <IconEdit size={16} />
-      {!collapsed ? <span>Compose</span> : null}
+      <span className="sidebar-compose-label">Compose</span>
     </button>
   );
 }

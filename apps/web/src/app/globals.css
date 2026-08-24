@@ -432,6 +432,10 @@ html:not([data-theme="light"]) .sidebar {
   margin-inline: auto;
 }
 
+.sidebar-compose-btn.collapsed .sidebar-compose-label {
+  display: none;
+}
+
 .sidebar.collapsed .sidebar-compose {
   padding: 0 0 0.85rem;
   display: flex;
@@ -3958,6 +3962,24 @@ html[data-theme="light"] .mail-search input {
   .sidebar.collapsed .nav-chevron,
   .sidebar.collapsed .logout-btn {
     display: initial;
+  }
+
+  .sidebar.collapsed .sidebar-compose {
+    display: block;
+    padding: 0 0.15rem 1rem;
+  }
+
+  .sidebar.collapsed .sidebar-compose-btn,
+  .sidebar-compose-btn.collapsed {
+    width: 100%;
+    height: auto;
+    padding: 0.72rem 1rem;
+    margin-inline: 0;
+  }
+
+  .sidebar.collapsed .sidebar-compose-btn .sidebar-compose-label,
+  .sidebar-compose-btn.collapsed .sidebar-compose-label {
+    display: inline;
   }
 
   .sidebar.collapsed .sidebar-brand-copy {
