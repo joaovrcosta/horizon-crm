@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { ProspectStatus } from "@prisma/client";
 import { z } from "zod";
-import { digitsOnly, getCountryFilterValues, normalizeCountryCode, type ApiResponse, type Prospect } from "@horizon/shared";
+import { digitsOnly, getCountryFilterValues, normalizeCountryCode, type ApiResponse, type Prospect, type ProspectTag } from "@horizon/shared";
 import { AppError } from "../lib/errors";
 import { prisma } from "../lib/prisma";
 import {
@@ -13,6 +13,14 @@ import {
   serializeProspect,
   startOfToday,
 } from "../lib/prospects";
+import {
+  findTagByQuery,
+  resolveTagName,
+  resolveTagNames,
+  serializeTag,
+  slugifyTag,
+  upsertTag,
+} from "../lib/tags";
 import { requireAuth } from "../middleware/auth";
 
 function parseCountry(value: string | null | undefined) {
@@ -61,6 +69,64 @@ const includeAssignee = { assignee: { select: { id: true, name: true } } };
 
 router.use(requireAuth);
 
+const tagKindEnum = z.enum(["CATEGORY", "LANGUAGE"]);
+
+router.get("/tags", async (req, res, next) => {
+  try {
+    const query = z
+      .object({
+        kind: tagKindEnum,
+        q: z.string().optional(),
+      })
+      .parse(req.query);
+
+    const q = query.q?.trim() ?? "";
+    const slug = q ? slugifyTag(q) : "";
+
+    const tags = await prisma.prospectTag.findMany({
+      where: {
+        kind: query.kind,
+        ...(q
+          ? {
+              OR: [
+                { name: { contains: q, mode: "insensitive" } },
+                ...(slug
+                  ? [{ slug: { contains: slug, mode: "insensitive" as const } }]
+                  : []),
+              ],
+            }
+          : {}),
+      },
+      orderBy: { name: "asc" },
+      take: 40,
+    });
+
+    res.json({
+      data: tags.map(serializeTag),
+    } satisfies ApiResponse<ProspectTag[]>);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/tags", async (req, res, next) => {
+  try {
+    const body = z
+      .object({
+        kind: tagKindEnum,
+        name: z.string().min(1).max(80),
+      })
+      .parse(req.body);
+
+    const tag = await upsertTag(body.kind, body.name);
+    res.status(201).json({
+      data: serializeTag(tag),
+    } satisfies ApiResponse<ProspectTag>);
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get("/", async (req, res, next) => {
   try {
     const query = z
@@ -70,6 +136,8 @@ router.get("/", async (req, res, next) => {
         assigneeId: z.string().cuid().optional(),
         due: dueEnum.optional(),
         country: z.string().optional(),
+        category: z.string().optional(),
+        language: z.string().optional(),
       })
       .parse(req.query);
 
@@ -79,6 +147,20 @@ router.get("/", async (req, res, next) => {
     if (query.country && !countryCode) {
       throw new AppError(400, "País inválido.");
     }
+
+    const categoryTag = query.category
+      ? await findTagByQuery("CATEGORY", query.category)
+      : null;
+    const languageTag = query.language
+      ? await findTagByQuery("LANGUAGE", query.language)
+      : null;
+    const languageValues = [
+      ...new Set(
+        [query.language, languageTag?.name, languageTag?.slug].filter(
+          (value): value is string => Boolean(value),
+        ),
+      ),
+    ];
 
     const dueFilter =
       query.due === "overdue"
@@ -107,6 +189,15 @@ router.get("/", async (req, res, next) => {
               },
             }
           : {}),
+        ...(query.category
+          ? {
+              category: {
+                equals: categoryTag?.name ?? query.category,
+                mode: "insensitive" as const,
+              },
+            }
+          : {}),
+        ...(query.language ? { languages: { hasSome: languageValues } } : {}),
         ...dueFilter,
         ...(query.q
           ? {
@@ -179,11 +270,9 @@ router.post("/", async (req, res, next) => {
         whatsapp,
         mapsUrl,
         website: normalizeUrl(body.website),
-        category: emptyToNull(body.category),
+        category: await resolveTagName("CATEGORY", emptyToNull(body.category)),
         country: parseCountry(body.country),
-        languages: (body.languages ?? [])
-          .map((l) => l.trim())
-          .filter(Boolean),
+        languages: await resolveTagNames("LANGUAGE", body.languages ?? []),
         status,
         notes: emptyToNull(body.notes),
         lostReason:
@@ -272,17 +361,13 @@ router.patch("/:id", async (req, res, next) => {
           ? { website: normalizeUrl(body.website) }
           : {}),
         ...(body.category !== undefined
-          ? { category: emptyToNull(body.category) }
+          ? { category: await resolveTagName("CATEGORY", emptyToNull(body.category)) }
           : {}),
         ...(body.country !== undefined
           ? { country: parseCountry(body.country) }
           : {}),
         ...(body.languages !== undefined
-          ? {
-              languages: body.languages
-                .map((l) => l.trim())
-                .filter(Boolean),
-            }
+          ? { languages: await resolveTagNames("LANGUAGE", body.languages) }
           : {}),
         ...(body.status !== undefined ? { status: nextStatus } : {}),
         ...(body.notes !== undefined ? { notes: emptyToNull(body.notes) } : {}),

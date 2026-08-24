@@ -31,6 +31,11 @@ enum ActivityType {
   OTHER
 }
 
+enum ProspectTagKind {
+  CATEGORY
+  LANGUAGE
+}
+
 model Role {
   id          String           @id @default(cuid())
   slug        String           @unique
@@ -122,6 +127,18 @@ model Prospect {
   @@index([nextContactAt])
   @@index([phoneDigits])
   @@index([mapsUrl])
+}
+
+model ProspectTag {
+  id        String          @id @default(cuid())
+  kind      ProspectTagKind
+  name      String
+  slug      String
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@unique([kind, slug])
+  @@index([kind, name])
 }
 
 model ProspectActivity {

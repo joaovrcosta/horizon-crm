@@ -20,8 +20,9 @@ import {
   copyHtmlToClipboard,
 } from "@/lib/email-signature";
 import { EmailSignaturePreview } from "@/components/email-signature-preview";
-import { CountryBadge } from "@/components/country-badge";
+import { CountryFlag } from "@/components/country-flag";
 import { CountrySelect } from "@/components/country-select";
+import { TagInput } from "@/components/tag-input";
 import { ProspectsListSkeleton } from "@/components/skeleton";
 import { useToast } from "@/components/toast";
 import {
@@ -55,7 +56,7 @@ type FormState = {
   website: string;
   category: string;
   country: string;
-  languages: string;
+  languages: string[];
   status: ProspectStatus;
   notes: string;
   lostReason: string;
@@ -74,7 +75,7 @@ const emptyForm = (assigneeId = ""): FormState => ({
   website: "",
   category: "",
   country: "",
-  languages: "",
+  languages: [],
   status: "NEW",
   notes: "",
   lostReason: "",
@@ -82,13 +83,6 @@ const emptyForm = (assigneeId = ""): FormState => ({
   nextContactAt: "",
   assigneeId,
 });
-
-function parseLanguages(value: string): string[] {
-  return value
-    .split(/[,;]/)
-    .map((l) => l.trim())
-    .filter(Boolean);
-}
 
 function prospectToForm(p: Prospect): FormState {
   return {
@@ -101,7 +95,7 @@ function prospectToForm(p: Prospect): FormState {
     website: p.website ?? "",
     category: p.category ?? "",
     country: p.country ?? "",
-    languages: (p.languages ?? []).join(", "),
+    languages: p.languages ?? [],
     status: p.status,
     notes: p.notes ?? "",
     lostReason: p.lostReason ?? "",
@@ -135,10 +129,11 @@ export default function ProspectsPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [dueFilter, setDueFilter] = useState("");
   const [countryFilter, setCountryFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [languageFilter, setLanguageFilter] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const filtersRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -192,13 +187,14 @@ export default function ProspectsPage() {
 
   async function load() {
     setLoading(true);
-    setError("");
     try {
       const params = new URLSearchParams();
       if (query.trim()) params.set("q", query.trim());
       if (statusFilter) params.set("status", statusFilter);
       if (dueFilter) params.set("due", dueFilter);
       if (countryFilter) params.set("country", countryFilter);
+      if (categoryFilter) params.set("category", categoryFilter);
+      if (languageFilter) params.set("language", languageFilter);
       const qs = params.toString();
       const data = await apiFetch<Prospect[]>(
         `/prospects${qs ? `?${qs}` : ""}`,
@@ -209,7 +205,7 @@ export default function ProspectsPage() {
         setSelectedId(data[0]?.id ?? null);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao carregar");
+      toast.error(err instanceof Error ? err.message : "Erro ao carregar");
     } finally {
       setLoading(false);
     }
@@ -222,7 +218,7 @@ export default function ProspectsPage() {
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, dueFilter, countryFilter]);
+  }, [statusFilter, dueFilter, countryFilter, categoryFilter, languageFilter]);
 
   useEffect(() => {
     if (!filtersOpen) return;
@@ -254,9 +250,13 @@ export default function ProspectsPage() {
     setDetailTab("overview");
   }, [selectedId]);
 
-  const activeFilterCount = [statusFilter, dueFilter, countryFilter].filter(
-    Boolean,
-  ).length;
+  const activeFilterCount = [
+    statusFilter,
+    dueFilter,
+    countryFilter,
+    categoryFilter,
+    languageFilter,
+  ].filter(Boolean).length;
 
   function openCreateModal() {
     setEditingId(null);
@@ -286,7 +286,8 @@ export default function ProspectsPage() {
     setFormError("");
     const payload = {
       ...form,
-      languages: parseLanguages(form.languages),
+      category: form.category || null,
+      languages: form.languages,
       country: form.country || null,
       estimatedValue: form.estimatedValue
         ? Number(form.estimatedValue)
@@ -340,7 +341,7 @@ export default function ProspectsPage() {
         prev.map((p) => (p.id === updated.id ? updated : p)),
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao atualizar");
+      toast.error(err instanceof Error ? err.message : "Erro ao atualizar");
     }
   }
 
@@ -352,7 +353,7 @@ export default function ProspectsPage() {
       setProspects((prev) => prev.filter((p) => p.id !== selected.id));
       setSelectedId(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao remover");
+      toast.error(err instanceof Error ? err.message : "Erro ao remover");
     }
   }
 
@@ -371,7 +372,7 @@ export default function ProspectsPage() {
       setActivities((prev) => [created, ...prev]);
       setActivityContent("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao registrar");
+      toast.error(err instanceof Error ? err.message : "Erro ao registrar");
     } finally {
       setSavingActivity(false);
     }
@@ -586,6 +587,28 @@ export default function ProspectsPage() {
                       placeholder="Todos os países"
                     />
                   </label>
+                  <label>
+                    Categoria
+                    <TagInput
+                      kind="CATEGORY"
+                      value={categoryFilter ? [categoryFilter] : []}
+                      onChange={(tags) => setCategoryFilter(tags[0] ?? "")}
+                      max={1}
+                      allowCreate={false}
+                      placeholder="Todas as categorias"
+                    />
+                  </label>
+                  <label>
+                    Idioma
+                    <TagInput
+                      kind="LANGUAGE"
+                      value={languageFilter ? [languageFilter] : []}
+                      onChange={(tags) => setLanguageFilter(tags[0] ?? "")}
+                      max={1}
+                      allowCreate={false}
+                      placeholder="Todos os idiomas"
+                    />
+                  </label>
                   <div className="filters-panel-actions">
                     <button
                       type="button"
@@ -595,6 +618,8 @@ export default function ProspectsPage() {
                         setStatusFilter("");
                         setDueFilter("");
                         setCountryFilter("");
+                        setCategoryFilter("");
+                        setLanguageFilter("");
                       }}
                     >
                       Limpar
@@ -618,9 +643,6 @@ export default function ProspectsPage() {
 
         <div className="list-items">
           {loading ? <ProspectsListSkeleton /> : null}
-          {error ? (
-            <p className="list-empty list-empty-error">{error}</p>
-          ) : null}
 
           {!loading && active.length > 0 ? (
             <>
@@ -634,15 +656,26 @@ export default function ProspectsPage() {
                   className={`list-item${selectedId === p.id ? " selected" : ""}`}
                   onClick={() => setSelectedId(p.id)}
                 >
+                  {p.country ? (
+                    <CountryFlag code={p.country} className="list-item-flag" />
+                  ) : null}
                   <strong>{p.name}</strong>
                   <span>{p.address || p.phone || p.email || "Sem contato"}</span>
                   <div className="meta">
                     <span className={`status-pill status-${p.status}`}>
                       {STATUS_LABELS[p.status]}
                     </span>
-                    {p.country ? (
-                      <CountryBadge code={p.country} showName={false} />
+                    {p.category ? (
+                      <span className="tag-chip tag-chip-category">{p.category}</span>
                     ) : null}
+                    {(p.languages ?? []).slice(0, 2).map((language) => (
+                      <span
+                        key={language}
+                        className="tag-chip tag-chip-language"
+                      >
+                        {language}
+                      </span>
+                    ))}
                     {isOverdue(p.nextContactAt, p.status) ? (
                       <span className="status-pill status-overdue">Atrasado</span>
                     ) : null}
@@ -667,6 +700,9 @@ export default function ProspectsPage() {
                   className={`list-item${selectedId === p.id ? " selected" : ""}`}
                   onClick={() => setSelectedId(p.id)}
                 >
+                  {p.country ? (
+                    <CountryFlag code={p.country} className="list-item-flag" />
+                  ) : null}
                   <strong>{p.name}</strong>
                   <span>{p.address || "—"}</span>
                 </button>
@@ -790,7 +826,20 @@ export default function ProspectsPage() {
                 </div>
                 <div className="kv-row">
                   <dt>Categoria</dt>
-                  <dd>{selected.category || "—"}</dd>
+                  <dd>
+                    <TagInput
+                      kind="CATEGORY"
+                      value={selected.category ? [selected.category] : []}
+                      onChange={(tags) => {
+                        const next = tags[0] ?? null;
+                        if ((selected.category ?? null) !== next) {
+                          void updateSelected({ category: next });
+                        }
+                      }}
+                      max={1}
+                      placeholder="Ex.: Arquitetura"
+                    />
+                  </dd>
                 </div>
                 <div className="kv-row">
                   <dt>País</dt>
@@ -809,17 +858,16 @@ export default function ProspectsPage() {
                 <div className="kv-row">
                   <dt>Idiomas</dt>
                   <dd>
-                    <input
-                      defaultValue={(selected.languages ?? []).join(", ")}
-                      key={`langs-${selected.id}`}
-                      placeholder="Ex.: Português, Inglês"
-                      onBlur={(e) => {
-                        const next = parseLanguages(e.target.value);
+                    <TagInput
+                      kind="LANGUAGE"
+                      value={selected.languages ?? []}
+                      onChange={(tags) => {
                         const prev = selected.languages ?? [];
-                        if (next.join("|") !== prev.join("|")) {
-                          void updateSelected({ languages: next });
+                        if (tags.join("|") !== prev.join("|")) {
+                          void updateSelected({ languages: tags });
                         }
                       }}
+                      placeholder="Ex.: Português, Inglês"
                     />
                   </dd>
                 </div>
@@ -1012,11 +1060,14 @@ export default function ProspectsPage() {
               </label>
               <label>
                 Categoria
-                <input
-                  value={form.category}
-                  onChange={(e) =>
-                    setForm({ ...form, category: e.target.value })
+                <TagInput
+                  kind="CATEGORY"
+                  value={form.category ? [form.category] : []}
+                  onChange={(tags) =>
+                    setForm({ ...form, category: tags[0] ?? "" })
                   }
+                  max={1}
+                  placeholder="Ex.: Arquitetura"
                 />
               </label>
               <label>
@@ -1030,12 +1081,11 @@ export default function ProspectsPage() {
               </label>
               <label>
                 Idiomas
-                <input
+                <TagInput
+                  kind="LANGUAGE"
                   value={form.languages}
-                  onChange={(e) =>
-                    setForm({ ...form, languages: e.target.value })
-                  }
-                  placeholder="Português, Inglês"
+                  onChange={(languages) => setForm({ ...form, languages })}
+                  placeholder="Ex.: Português"
                 />
               </label>
               <label>

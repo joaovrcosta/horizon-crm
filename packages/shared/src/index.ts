@@ -64,6 +64,14 @@ export type AuthLoginResponse = {
   permissions: PermissionKey[];
 };
 
+export type ProspectTagKind = "CATEGORY" | "LANGUAGE";
+
+export type ProspectTag = {
+  id: string;
+  kind: ProspectTagKind;
+  name: string;
+};
+
 export type Prospect = {
   id: string;
   name: string;
