@@ -16,6 +16,7 @@ import {
   IconSettings,
   IconSun,
   IconUsers,
+  IconVault,
 } from "@/components/icons";
 import { useSidebarCollapsed } from "@/hooks/use-sidebar-collapsed";
 
@@ -23,7 +24,8 @@ const NAV = [
   { href: "/", label: "Dashboard", icon: IconDashboard, exact: true },
   { href: "/prospects", label: "Clientes", icon: IconProspects },
   { href: "/pipeline", label: "Funil", icon: IconPipeline },
-  { href: "/prompts", label: "Prompts", icon: IconPrompt },
+  { href: "/prompts", label: "E-mail templates", icon: IconPrompt },
+  { href: "/vaults", label: "Cofres", icon: IconVault },
   { href: "/settings", label: "Configurações", icon: IconSettings },
 ] as const;
 

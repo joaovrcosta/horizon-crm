@@ -1168,6 +1168,7 @@ label .country-select {
 .users-page,
 .pipeline-page,
 .dashboard-page,
+.vaults-page,
 .page-wrap {
   padding: var(--space-5) var(--space-6) var(--space-6);
 }
@@ -1297,6 +1298,105 @@ label .country-select {
   }
 }
 
+.prompts-page .list-toolbar {
+  padding: 0;
+  margin-bottom: 1rem;
+}
+
+.prompts-toolbar .list-toolbar-row select {
+  width: auto;
+  min-width: min(240px, 42vw);
+  flex-shrink: 0;
+}
+
+.prompts-toolbar .list-toolbar-row .btn {
+  width: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.template-vars-dropdown {
+  grid-column: 1 / -1;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.02);
+  overflow: hidden;
+}
+
+.template-vars-dropdown summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.template-vars-dropdown summary::-webkit-details-marker {
+  display: none;
+}
+
+.template-vars-dropdown summary::after {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 1.5px solid var(--text-subtle);
+  border-bottom: 1.5px solid var(--text-subtle);
+  transform: rotate(45deg);
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+  margin-top: -0.15rem;
+}
+
+.template-vars-dropdown[open] summary {
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text);
+}
+
+.template-vars-dropdown[open] summary::after {
+  transform: rotate(-135deg);
+  margin-top: 0.15rem;
+}
+
+.template-vars-dropdown .field-hint {
+  padding: 0.75rem 0.9rem 0;
+}
+
+.template-vars-dropdown .template-vars-list {
+  padding: 0.55rem 0.9rem 0.85rem;
+}
+
+.template-vars-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.template-vars-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.45rem 0.65rem;
+  font-size: 0.78rem;
+  color: var(--text-subtle);
+}
+
+.template-vars-list code {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.74rem;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.12rem 0.35rem;
+  border-radius: 4px;
+}
+
 .prompt-grid {
   display: grid;
   gap: var(--space-3);
@@ -1343,6 +1443,204 @@ label .country-select {
   display: flex;
   gap: var(--space-2);
   flex-wrap: wrap;
+}
+
+.vaults-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+.vaults-page .page-header {
+  margin-bottom: var(--space-4);
+}
+
+.vaults-page .form-error {
+  margin: 0 0 var(--space-3);
+}
+
+.vaults-page .vaults-split {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  max-height: calc(100vh - 10.5rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.vaults-page .vault-list-pane {
+  height: 100%;
+  max-height: none;
+}
+
+.vaults-page .vault-detail-pane {
+  max-height: none;
+  height: 100%;
+}
+
+.vaults-toolbar {
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  margin: 0;
+}
+
+.vaults-toolbar .list-toolbar-row .btn {
+  width: auto;
+  flex-shrink: 0;
+}
+
+.vault-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 var(--space-4) var(--space-4);
+  overflow-y: auto;
+  flex: 1;
+}
+
+.vault-list-item {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  padding: 0.75rem 0.9rem;
+  cursor: pointer;
+  display: grid;
+  gap: 0.2rem;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.vault-list-item + .vault-list-item,
+.vault-list li + li .vault-list-item {
+  margin-top: var(--space-2);
+}
+
+.vault-list-item:hover {
+  border-color: color-mix(in srgb, var(--brand) 40%, var(--border));
+}
+
+.vault-list-item.active {
+  border-color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 8%, var(--surface-2));
+}
+
+.vault-list-name {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 0.92rem;
+}
+
+.vault-list-meta {
+  font-size: 0.75rem;
+  color: var(--text-subtle);
+}
+
+.vault-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.vault-detail-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.vault-description {
+  margin: 0.35rem 0 0;
+  color: var(--text-muted);
+  font-size: var(--text-small);
+}
+
+.vault-detail-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.vault-items-grid {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.vault-item-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.vault-item-card h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.vault-item-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text-muted);
+  font-size: var(--text-small);
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  max-height: 160px;
+  overflow: auto;
+  border: 1px solid var(--border);
+}
+
+.vault-item-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: nowrap;
+}
+
+.vault-item-actions .btn {
+  padding: 0.42rem 0.62rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  gap: 0.3rem;
+  white-space: nowrap;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.vault-item-actions .btn svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.vault-empty-hint {
+  color: var(--text-subtle);
+  font-size: var(--text-small);
+  padding: 0 var(--space-4) var(--space-4);
+  margin: 0;
+}
+
+.vault-empty-state {
+  color: var(--text-subtle);
+  font-size: var(--text-small);
+  display: grid;
+  place-content: center;
+  min-height: 40vh;
+  text-align: center;
+  gap: var(--space-2);
+  padding: var(--space-5);
+}
+
+.vault-empty-state h2 {
+  margin: 0;
+  color: var(--text);
 }
 
 .tags {

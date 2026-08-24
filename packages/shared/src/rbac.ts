@@ -4,6 +4,7 @@ export const PERMISSION_KEYS = [
   "users:update",
   "users:delete",
   "prompts:manage_all",
+  "vaults:manage_all",
 ] as const;
 
 export type PermissionKey = (typeof PERMISSION_KEYS)[number];

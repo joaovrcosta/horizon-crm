@@ -4,13 +4,15 @@ export function PromptsSkeleton() {
   return (
     <SkeletonBlock>
       <div className="page-header">
-        <Skeleton width={120} height={28} />
-        <Skeleton width={130} height={36} radius={6} />
+        <Skeleton width={180} height={28} />
+        <Skeleton width={150} height={36} radius={6} />
       </div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-        <Skeleton width="100%" height={38} radius={6} style={{ flex: 1 }} />
-        <Skeleton width={180} height={38} radius={6} />
-        <Skeleton width={90} height={38} radius={6} />
+      <div className="list-toolbar prompts-toolbar">
+        <div className="list-toolbar-row">
+          <Skeleton width="100%" height={38} radius={6} style={{ flex: 1 }} />
+          <Skeleton width={240} height={38} radius={6} />
+          <Skeleton width={90} height={38} radius={6} />
+        </div>
       </div>
       <div className="prompt-grid">
         {Array.from({ length: 6 }).map((_, i) => (

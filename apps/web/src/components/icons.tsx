@@ -58,6 +58,17 @@ export function IconPrompt(props: IconProps) {
   );
 }
 
+export function IconVault(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect x="3" y="8" width="18" height="13" rx="2" />
+      <path d="M7 8V6a5 5 0 0 1 10 0v2" />
+      <circle cx="12" cy="14.5" r="1.5" fill="currentColor" stroke="none" />
+      <path d="M12 16v2" />
+    </svg>
+  );
+}
+
 export function IconProspects(props: IconProps) {
   return (
     <svg {...base(props)}>

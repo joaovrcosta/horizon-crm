@@ -147,6 +147,27 @@ export type Prompt = {
   updatedAt: string;
 };
 
+export type Vault = {
+  id: string;
+  name: string;
+  description: string | null;
+  visibility: PromptVisibility;
+  createdById: string;
+  itemCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type VaultItem = {
+  id: string;
+  vaultId: string;
+  title: string;
+  content: string;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type EmailSignature = {
   id: string;
   userId: string;

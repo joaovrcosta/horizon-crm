@@ -27,7 +27,12 @@ const PERMISSIONS = [
   {
     id: "perm_prompts_manage_all",
     key: "prompts:manage_all",
-    description: "Gerenciar todos os prompts",
+    description: "Gerenciar todos os templates de e-mail",
+  },
+  {
+    id: "perm_vaults_manage_all",
+    key: "vaults:manage_all",
+    description: "Gerenciar todos os cofres",
   },
 ] as const;
 

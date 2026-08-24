@@ -7,6 +7,7 @@ export {
   ProspectDetailSkeleton,
 } from "./prospects";
 export { PromptsSkeleton } from "./prompts";
+export { VaultsSkeleton } from "./vaults";
 export { UsersSkeleton } from "./users";
 export { SettingsSkeleton } from "./settings";
 export { SidebarSkeleton } from "./sidebar-skeleton";

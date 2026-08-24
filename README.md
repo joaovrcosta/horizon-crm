@@ -79,6 +79,6 @@ Se o deploy travar no `prisma migrate deploy`, confira se `DIRECT_URL` aponta pa
 - **Dashboard:** totais, follow-ups atrasados/hoje, ganhos no mês
 - **Prospects:** lista + detalhe, responsável, próximo contato, email/WhatsApp, atividades
 - **Funil:** kanban com drag-and-drop de status
-- **Prompts:** vault público/privado com copiar
+- **E-mail templates:** vault público/privado com copiar
 - **Auth:** JWT access + refresh httpOnly cookie; só admin cria usuários
 - **Anti-duplicata:** telefone (normalizado) e link do Maps

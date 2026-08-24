@@ -10,6 +10,8 @@ import authRoutes from "./routes/auth";
 import emailsRoutes from "./routes/emails";
 import prospectsRoutes from "./routes/prospects";
 import promptsRoutes from "./routes/prompts";
+import vaultItemsRoutes from "./routes/vault-items";
+import vaultsRoutes from "./routes/vaults";
 import settingsRoutes from "./routes/settings";
 import statsRoutes from "./routes/stats";
 import usersRoutes from "./routes/users";
@@ -58,6 +60,8 @@ export function createApp() {
   app.use("/prospects/:id/emails", emailsRoutes);
   app.use("/prospects", prospectsRoutes);
   app.use("/prompts", promptsRoutes);
+  app.use("/vaults/:vaultId/items", vaultItemsRoutes);
+  app.use("/vaults", vaultsRoutes);
 
   app.use(errorHandler);
 

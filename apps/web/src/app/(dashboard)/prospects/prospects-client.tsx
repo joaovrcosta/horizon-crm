@@ -1202,7 +1202,7 @@ export default function ProspectsPage() {
                 <input type="email" value={selected.email} readOnly />
               </label>
               <label>
-                Usar prompt
+                Usar template
                 <select
                   value={emailPromptId}
                   onChange={(e) => applyEmailPrompt(e.target.value)}
@@ -1235,7 +1235,7 @@ export default function ProspectsPage() {
                   rows={8}
                   value={emailBody}
                   onChange={(e) => setEmailBody(e.target.value)}
-                  placeholder="Escreva o e-mail, use o corpo padrão das configs ou um prompt."
+                  placeholder="Escreva o e-mail, use o corpo padrão das configs ou um template."
                 />
               </label>
               {emailSignature ? (

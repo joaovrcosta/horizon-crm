@@ -11,6 +11,10 @@ import {
   IconTrash,
 } from "@/components/icons";
 import { PromptsSkeleton } from "@/components/skeleton";
+import {
+  formatPromptVariableTokens,
+  PROMPT_TEMPLATE_VARIABLE_HINTS,
+} from "@/lib/prospect-utils";
 
 const emptyForm = {
   title: "",
@@ -123,7 +127,7 @@ export default function PromptsPage() {
   }
 
   async function removePrompt(prompt: Prompt) {
-    if (!confirm(`Remover prompt "${prompt.title}"?`)) return;
+    if (!confirm(`Remover template "${prompt.title}"?`)) return;
     try {
       await apiFetch<void>(`/prompts/${prompt.id}`, { method: "DELETE" });
       setPrompts((prev) => prev.filter((p) => p.id !== prompt.id));
@@ -139,33 +143,36 @@ export default function PromptsPage() {
   return (
     <div className="prompts-page">
       <div className="page-header">
-        <h1>Vault de prompts</h1>
+        <h1>E-mail templates</h1>
         <button className="btn btn-primary" type="button" onClick={openCreate}>
           <IconPlus size={16} />
-          Novo prompt
+          Novo template
         </button>
       </div>
 
-      <div className="list-toolbar" style={{ padding: 0, marginBottom: "1rem", maxWidth: 560 }}>
-        <input
-          placeholder="Buscar prompts…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") void load();
-          }}
-        />
-        <select
-          value={visibilityFilter}
-          onChange={(e) => setVisibilityFilter(e.target.value)}
-        >
-          <option value="">Todos (públicos + meus privados)</option>
-          <option value="PUBLIC">Só públicos</option>
-          <option value="PRIVATE">Só privados</option>
-        </select>
-        <button className="btn btn-secondary" type="button" onClick={() => void load()}>
-          Buscar
-        </button>
+      <div className="list-toolbar prompts-toolbar">
+        <div className="list-toolbar-row">
+          <input
+            className="list-search"
+            placeholder="Buscar templates…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void load();
+            }}
+          />
+          <select
+            value={visibilityFilter}
+            onChange={(e) => setVisibilityFilter(e.target.value)}
+          >
+            <option value="">Todos (públicos + meus privados)</option>
+            <option value="PUBLIC">Só públicos</option>
+            <option value="PRIVATE">Só privados</option>
+          </select>
+          <button className="btn btn-secondary" type="button" onClick={() => void load()}>
+            Buscar
+          </button>
+        </div>
       </div>
 
       {error ? <p style={{ color: "#b91c1c" }}>{error}</p> : null}
@@ -226,7 +233,7 @@ export default function PromptsPage() {
 
         {prompts.length === 0 ? (
           <p style={{ color: "#6b7280" }}>
-            Nenhum prompt no vault. Crie textos e links copiáveis para a equipe.
+            Nenhum template de e-mail. Crie textos reutilizáveis para a equipe.
           </p>
         ) : null}
       </div>
@@ -234,7 +241,7 @@ export default function PromptsPage() {
       {showModal ? (
         <div className="modal-backdrop">
           <form className="modal" onSubmit={savePrompt}>
-            <h2>{editing ? "Editar prompt" : "Novo prompt"}</h2>
+            <h2>{editing ? "Editar template" : "Novo template"}</h2>
             <div className="form-grid">
               <label>
                 Título *
@@ -251,8 +258,26 @@ export default function PromptsPage() {
                   rows={8}
                   value={form.content}
                   onChange={(e) => setForm({ ...form, content: e.target.value })}
+                  placeholder={
+                    "Olá {{nome}},\n\nTudo bem? Vi que você atua em {{categoria}}…"
+                  }
                 />
               </label>
+              <details className="template-vars-dropdown">
+                <summary>Variáveis disponíveis para personalizar o e-mail</summary>
+                <p className="field-hint">
+                  Ao enviar e-mail a partir de um cliente, estas variáveis são
+                  preenchidas automaticamente com os dados dele:
+                </p>
+                <ul className="template-vars-list">
+                  {PROMPT_TEMPLATE_VARIABLE_HINTS.map(({ keys, label }) => (
+                    <li key={keys[0]}>
+                      <code>{formatPromptVariableTokens(keys)}</code>
+                      <span>{label}</span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
               <label>
                 Visibilidade *
                 <select

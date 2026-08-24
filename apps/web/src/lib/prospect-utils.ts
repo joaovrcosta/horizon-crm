@@ -52,6 +52,20 @@ type PromptVars = {
   website?: string | null;
 };
 
+/** Variáveis disponíveis em templates de e-mail (dados do cliente). */
+export const PROMPT_TEMPLATE_VARIABLE_HINTS = [
+  { keys: ["nome", "name"], label: "Nome do cliente" },
+  { keys: ["email"], label: "E-mail" },
+  { keys: ["telefone", "phone"], label: "Telefone ou WhatsApp" },
+  { keys: ["endereco", "address"], label: "Endereço" },
+  { keys: ["categoria", "category"], label: "Categoria" },
+  { keys: ["website"], label: "Site" },
+] as const;
+
+export function formatPromptVariableTokens(keys: readonly string[]) {
+  return keys.map((key) => `{{${key}}}`).join(" ou ");
+}
+
 /** Replace {{nome}}, {{name}}, {{email}}, etc. in prompt content. */
 export function applyPromptTemplate(template: string, vars: PromptVars) {
   const map: Record<string, string> = {

@@ -3,7 +3,7 @@
 import { useSidebarCollapsed } from "@/hooks/use-sidebar-collapsed";
 import { Skeleton } from "./skeleton";
 
-const NAV_COUNT = 5;
+const NAV_COUNT = 6;
 
 export function SidebarSkeleton({
   initialCollapsed = true,

@@ -7,7 +7,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Horizon Management",
-  description: "Clientes e vault de prompts para agência",
+  description: "Clientes e templates de e-mail para agência",
   icons: {
     icon: [{ url: "/brand/horizon-logo.svg", type: "image/svg+xml" }],
     shortcut: "/brand/horizon-logo.svg",
