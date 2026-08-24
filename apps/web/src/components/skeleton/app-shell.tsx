@@ -1,6 +1,6 @@
 "use client";
 
-import { SkeletonBlock } from "./skeleton";
+import { Skeleton, SkeletonBlock } from "./skeleton";
 import { SidebarSkeleton } from "./sidebar-skeleton";
 import { DashboardSkeleton } from "./dashboard";
 import { PipelineSkeleton } from "./pipeline";
@@ -27,6 +27,19 @@ export function AppShellSkeleton({
 }) {
   return (
     <SkeletonBlock className="dashboard">
+      <header className="mobile-topbar" aria-hidden>
+        <Skeleton className="mobile-topbar-toggle-skeleton" />
+        <div className="mobile-topbar-brand">
+          <img
+            src="/brand/horizon-logo.svg"
+            alt=""
+            className="mobile-topbar-logo"
+            width={85}
+            height={28}
+          />
+          <span>horizon.</span>
+        </div>
+      </header>
       <SidebarSkeleton initialCollapsed={initialSidebarCollapsed} />
       <div className="dashboard-main">{pageSkeletonForPath(pathname)}</div>
     </SkeletonBlock>

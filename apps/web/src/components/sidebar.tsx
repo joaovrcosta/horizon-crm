@@ -17,6 +17,7 @@ import {
   IconSun,
   IconUsers,
   IconVault,
+  IconX,
 } from "@/components/icons";
 import { useSidebarCollapsed } from "@/hooks/use-sidebar-collapsed";
 
@@ -31,8 +32,10 @@ const NAV = [
 
 export function Sidebar({
   initialCollapsed = true,
+  onMobileClose,
 }: {
   initialCollapsed?: boolean;
+  onMobileClose?: () => void;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -50,7 +53,10 @@ export function Sidebar({
   }
 
   return (
-    <aside className={`sidebar${collapsed ? " collapsed" : ""}`}>
+    <aside
+      id="app-sidebar"
+      className={`sidebar${collapsed ? " collapsed" : ""}`}
+    >
       <div className="sidebar-brand-row">
         <div className="sidebar-brand" title="Horizon">
           <img
@@ -60,9 +66,7 @@ export function Sidebar({
             width={85}
             height={28}
           />
-          {!collapsed ? (
-            <span className="sidebar-brand-text">horizon.</span>
-          ) : null}
+          <span className="sidebar-brand-text">horizon.</span>
         </div>
         <button
           type="button"
@@ -76,6 +80,14 @@ export function Sidebar({
           ) : (
             <IconChevronLeft size={16} />
           )}
+        </button>
+        <button
+          type="button"
+          className="sidebar-close-mobile"
+          onClick={onMobileClose}
+          aria-label="Fechar menu"
+        >
+          <IconX size={16} />
         </button>
       </div>
 
@@ -92,6 +104,7 @@ export function Sidebar({
               href={item.href}
               className={`nav-item${active ? " active" : ""}`}
               title={item.label}
+              onClick={onMobileClose}
             >
               <span className="nav-icon">
                 <Icon size={16} />
@@ -106,6 +119,7 @@ export function Sidebar({
             href="/users"
             className={`nav-item${pathname.startsWith("/users") ? " active" : ""}`}
             title="Usuários"
+            onClick={onMobileClose}
           >
             <span className="nav-icon">
               <IconUsers size={16} />

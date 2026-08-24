@@ -37,6 +37,7 @@ import {
 } from "@/lib/prospect-utils";
 import {
   IconChevronDown,
+  IconChevronLeft,
   IconEdit,
   IconFilter,
   IconMail,
@@ -147,6 +148,9 @@ export default function ProspectsPage() {
   const [savingActivity, setSavingActivity] = useState(false);
   const [detailTab, setDetailTab] = useState<"overview" | "activity">(
     "overview",
+  );
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(
+    () => Boolean(initialId),
   );
 
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -318,6 +322,7 @@ export default function ProspectsPage() {
         closeProspectModal();
         setProspects((prev) => [created, ...prev]);
         setSelectedId(created.id);
+        setMobileDetailOpen(true);
         fireConfetti();
       }
     } catch (err) {
@@ -355,6 +360,7 @@ export default function ProspectsPage() {
       await apiFetch<void>(`/prospects/${selected.id}`, { method: "DELETE" });
       setProspects((prev) => prev.filter((p) => p.id !== selected.id));
       setSelectedId(null);
+      setMobileDetailOpen(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao remover");
     }
@@ -515,7 +521,9 @@ export default function ProspectsPage() {
     : null;
 
   return (
-    <div className="split-view">
+    <div
+      className={`split-view${mobileDetailOpen ? " mobile-detail-open" : ""}`}
+    >
       <section className="list-pane">
         <div className="list-header">
           <h2>
@@ -657,7 +665,10 @@ export default function ProspectsPage() {
                   key={p.id}
                   type="button"
                   className={`list-item${selectedId === p.id ? " selected" : ""}`}
-                  onClick={() => setSelectedId(p.id)}
+                  onClick={() => {
+                    setSelectedId(p.id);
+                    setMobileDetailOpen(true);
+                  }}
                 >
                   {p.country ? (
                     <CountryFlag code={p.country} className="list-item-flag" />
@@ -711,7 +722,10 @@ export default function ProspectsPage() {
                       key={p.id}
                       type="button"
                       className={`list-item${selectedId === p.id ? " selected" : ""}`}
-                      onClick={() => setSelectedId(p.id)}
+                      onClick={() => {
+                        setSelectedId(p.id);
+                        setMobileDetailOpen(true);
+                      }}
                     >
                       {p.country ? (
                         <CountryFlag
@@ -751,6 +765,14 @@ export default function ProspectsPage() {
           <div className="detail-empty">Selecione um cliente</div>
         ) : (
           <>
+            <button
+              type="button"
+              className="detail-back"
+              onClick={() => setMobileDetailOpen(false)}
+            >
+              <IconChevronLeft size={16} />
+              Clientes
+            </button>
             <div className="detail-tabs">
               <button
                 type="button"
