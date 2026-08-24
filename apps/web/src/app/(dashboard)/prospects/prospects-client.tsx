@@ -25,6 +25,7 @@ import { CountrySelect } from "@/components/country-select";
 import { TagInput } from "@/components/tag-input";
 import { ProspectsListSkeleton } from "@/components/skeleton";
 import { useToast } from "@/components/toast";
+import { fireConfetti } from "@/lib/confetti";
 import {
   applyPromptTemplate,
   formatDateTime,
@@ -316,6 +317,7 @@ export default function ProspectsPage() {
         closeProspectModal();
         setProspects((prev) => [created, ...prev]);
         setSelectedId(created.id);
+        fireConfetti();
       }
     } catch (err) {
       setFormError(
