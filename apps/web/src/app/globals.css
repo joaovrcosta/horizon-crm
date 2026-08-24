@@ -1720,7 +1720,7 @@ label .country-select {
 
 .signature-react-email img,
 .signature-html img {
-  max-width: 200px;
+  max-width: 90px;
   height: auto;
   display: block;
 }

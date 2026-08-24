@@ -1,7 +1,10 @@
 import { Router } from "express";
 import { z } from "zod";
 import type { ApiResponse, EmailSignature } from "@horizon/shared";
-import { DEFAULT_EMAIL_REPLY_TO } from "@horizon/shared";
+import {
+  DEFAULT_EMAIL_LOGO_URL,
+  DEFAULT_EMAIL_REPLY_TO,
+} from "@horizon/shared";
 import { prisma } from "../lib/prisma";
 import { requireAuth } from "../middleware/auth";
 
@@ -75,7 +78,7 @@ function serialize(row: {
     displayName: row.displayName,
     title: row.title,
     phone: row.phone,
-    logoUrl: row.logoUrl,
+    logoUrl: row.logoUrl?.trim() || DEFAULT_EMAIL_LOGO_URL,
     company: row.company,
     tagline: row.tagline,
     addressLine1: row.addressLine1,
@@ -96,7 +99,7 @@ function emptySignature(userId: string, userName?: string | null): EmailSignatur
     displayName: userName?.trim() || null,
     title: null,
     phone: null,
-    logoUrl: null,
+    logoUrl: DEFAULT_EMAIL_LOGO_URL,
     company: null,
     tagline: null,
     addressLine1: null,
@@ -141,7 +144,7 @@ router.put("/email-signature", async (req, res, next) => {
         displayName: body.displayName,
         title: body.title,
         phone: body.phone,
-        logoUrl: body.logoUrl,
+        logoUrl: body.logoUrl?.trim() || DEFAULT_EMAIL_LOGO_URL,
         company: body.company,
         tagline: body.tagline,
         addressLine1: body.addressLine1,
@@ -155,7 +158,7 @@ router.put("/email-signature", async (req, res, next) => {
         displayName: body.displayName,
         title: body.title,
         phone: body.phone,
-        logoUrl: body.logoUrl,
+        logoUrl: body.logoUrl?.trim() || DEFAULT_EMAIL_LOGO_URL,
         company: body.company,
         tagline: body.tagline,
         addressLine1: body.addressLine1,

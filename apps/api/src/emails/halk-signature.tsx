@@ -108,7 +108,7 @@ export function HalkEmailSignature({
       {hasPerson ? <Text style={styles.spacer}>&nbsp;</Text> : null}
 
       {logo ? (
-        <Img src={logo} alt={brand || "logo"} width={200} style={styles.logo} />
+        <Img src={logo} alt={brand || "logo"} width={90} style={styles.logo} />
       ) : null}
 
       {brand || tag ? (

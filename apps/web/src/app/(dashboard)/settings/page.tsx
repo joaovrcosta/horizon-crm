@@ -2,7 +2,10 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import type { EmailSignature } from "@horizon/shared";
-import { DEFAULT_EMAIL_REPLY_TO } from "@horizon/shared";
+import {
+  DEFAULT_EMAIL_LOGO_URL,
+  DEFAULT_EMAIL_REPLY_TO,
+} from "@horizon/shared";
 import { useAuth } from "@/components/auth-provider";
 import { EmailSignaturePreview } from "@/components/email-signature-preview";
 import { SettingsSkeleton } from "@/components/skeleton";
@@ -29,7 +32,7 @@ const emptyForm = (name = ""): FormState => ({
   displayName: name,
   title: "",
   phone: "",
-  logoUrl: "",
+  logoUrl: DEFAULT_EMAIL_LOGO_URL,
   company: "",
   tagline: "",
   addressLine1: "",
@@ -45,7 +48,7 @@ function toForm(sig: EmailSignature, fallbackName: string): FormState {
     displayName: sig.displayName ?? fallbackName,
     title: sig.title ?? "",
     phone: sig.phone ?? "",
-    logoUrl: sig.logoUrl ?? "",
+    logoUrl: sig.logoUrl?.trim() || DEFAULT_EMAIL_LOGO_URL,
     company: sig.company ?? "",
     tagline: sig.tagline ?? "",
     addressLine1: sig.addressLine1 ?? "",
@@ -96,7 +99,7 @@ export default function SettingsPage() {
           displayName: form.displayName || null,
           title: form.title || null,
           phone: form.phone || null,
-          logoUrl: form.logoUrl || null,
+          logoUrl: form.logoUrl.trim() || DEFAULT_EMAIL_LOGO_URL,
           company: form.company || null,
           tagline: form.tagline || null,
           addressLine1: form.addressLine1 || null,
@@ -122,7 +125,7 @@ export default function SettingsPage() {
     displayName: form.displayName || null,
     title: form.title || null,
     phone: form.phone || null,
-    logoUrl: form.logoUrl || null,
+    logoUrl: form.logoUrl.trim() || DEFAULT_EMAIL_LOGO_URL,
     company: form.company || null,
     tagline: form.tagline || null,
     addressLine1: form.addressLine1 || null,
@@ -243,7 +246,7 @@ export default function SettingsPage() {
                 onChange={(e) =>
                   setForm({ ...form, logoUrl: e.target.value })
                 }
-                placeholder="https://… (opcional)"
+                placeholder={DEFAULT_EMAIL_LOGO_URL}
               />
             </label>
             <label>

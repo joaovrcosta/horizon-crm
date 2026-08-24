@@ -127,7 +127,7 @@ export function HalkEmailSignature({
         <Img
           src={logo}
           alt={brand || "logo"}
-          width={200}
+          width={90}
           style={styles.logo}
         />
       ) : null}
