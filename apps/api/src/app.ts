@@ -8,6 +8,7 @@ import { errorHandler } from "./middleware/error";
 import activitiesRoutes from "./routes/activities";
 import authRoutes from "./routes/auth";
 import emailsRoutes from "./routes/emails";
+import composeEmailRoutes from "./routes/compose-email";
 import prospectsRoutes from "./routes/prospects";
 import promptsRoutes from "./routes/prompts";
 import vaultItemsRoutes from "./routes/vault-items";
@@ -63,6 +64,7 @@ export function createApp() {
   app.use("/settings", settingsRoutes);
   app.use("/prospects/:id/activities", activitiesRoutes);
   app.use("/prospects/:id/emails", emailsRoutes);
+  app.use("/emails", composeEmailRoutes);
   app.use("/prospects", prospectsRoutes);
   app.use("/prompts", promptsRoutes);
   app.use("/vaults/:vaultId/items", vaultItemsRoutes);

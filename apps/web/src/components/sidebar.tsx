@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
+import { ComposeSidebarButton } from "@/components/compose-email";
 import { useTheme } from "@/components/theme-provider";
 import {
   IconChevronLeft,
@@ -89,6 +90,13 @@ export function Sidebar({
         >
           <IconX size={16} />
         </button>
+      </div>
+
+      <div className="sidebar-compose">
+        <ComposeSidebarButton
+          collapsed={collapsed}
+          onClick={onMobileClose}
+        />
       </div>
 
       <nav className="sidebar-nav">

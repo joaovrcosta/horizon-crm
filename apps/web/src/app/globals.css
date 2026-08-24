@@ -341,6 +341,47 @@ textarea {
   color: inherit;
 }
 
+.sidebar-compose {
+  padding: 0 var(--space-2) var(--space-4);
+}
+
+.sidebar-compose-btn {
+  appearance: none;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 0.75rem 1rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--brand);
+  color: #fff;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background var(--motion), transform var(--motion);
+}
+
+.sidebar-compose-btn:hover {
+  background: var(--brand-hover);
+  transform: translateY(-1px);
+}
+
+.sidebar-compose-btn.collapsed {
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  margin-inline: auto;
+}
+
+.sidebar.collapsed .sidebar-compose {
+  padding: 0 0 0.85rem;
+  display: flex;
+  justify-content: center;
+}
+
 .sidebar-collapse-btn {
   flex-shrink: 0;
   margin-top: 0.15rem;
@@ -2168,7 +2209,7 @@ label .country-select {
   border: 1px solid var(--border);
   border-radius: 12px 12px 0 0;
   box-shadow: var(--shadow-popover);
-  overflow: hidden;
+  overflow: visible;
   z-index: 51;
 }
 
@@ -2257,10 +2298,144 @@ label .country-select {
   align-items: flex-start;
   padding-top: 0.65rem;
   padding-bottom: 0.65rem;
+  position: relative;
+  overflow: visible;
 }
 
 .compose-to .compose-label {
   padding-top: 0.45rem;
+}
+
+.compose-to-field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.compose-suggest {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  z-index: 5;
+  max-height: 220px;
+  overflow: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-popover);
+  padding: 0.25rem;
+}
+
+.compose-suggest-item {
+  appearance: none;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.compose-suggest-item:hover {
+  background: var(--surface-2);
+}
+
+.compose-suggest-avatar {
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--brand);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.compose-suggest-text {
+  display: grid;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.compose-suggest-text strong {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compose-suggest-text em {
+  font-style: normal;
+  font-size: 0.72rem;
+  color: var(--text-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compose-suggest-empty {
+  padding: 0.65rem 0.7rem;
+  font-size: 0.78rem;
+  color: var(--text-subtle);
+}
+
+html[data-theme="light"] .compose-suggest {
+  background: #fff;
+  border-color: #dadce0;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.16),
+    0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+html[data-theme="light"] .compose-suggest-item:hover {
+  background: #f1f3f4;
+}
+
+html[data-theme="light"] .compose-suggest-text strong {
+  color: #202124;
+}
+
+html[data-theme="light"] .compose-suggest-text em,
+html[data-theme="light"] .compose-suggest-empty {
+  color: #5f6368;
+}
+
+.compose-to-editable {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.compose-chip-remove {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-subtle);
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.compose-chip-remove:hover {
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+  color: var(--text);
 }
 
 .compose-chip {
