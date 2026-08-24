@@ -50,23 +50,29 @@ type PromptVars = {
   address?: string | null;
   category?: string | null;
   website?: string | null;
+  /** Nome da pessoa logada (consultor / conta). */
+  consultantName?: string | null;
 };
 
-/** Variáveis disponíveis em templates de e-mail (dados do cliente). */
+/** Variáveis disponíveis em templates de e-mail. */
 export const PROMPT_TEMPLATE_VARIABLE_HINTS = [
   { keys: ["nome", "name"], label: "Nome do cliente" },
-  { keys: ["email"], label: "E-mail" },
+  { keys: ["email"], label: "E-mail do cliente" },
   { keys: ["telefone", "phone"], label: "Telefone ou WhatsApp" },
   { keys: ["endereco", "address"], label: "Endereço" },
   { keys: ["categoria", "category"], label: "Categoria" },
   { keys: ["website"], label: "Site" },
+  {
+    keys: ["consultantName", "consultor"],
+    label: "Nome da pessoa da conta (quem envia)",
+  },
 ] as const;
 
 export function formatPromptVariableTokens(keys: readonly string[]) {
   return keys.map((key) => `{{${key}}}`).join(" ou ");
 }
 
-/** Replace {{nome}}, {{name}}, {{email}}, etc. in prompt content. */
+/** Replace {{nome}}, {{consultantName}}, etc. in prompt content. */
 export function applyPromptTemplate(template: string, vars: PromptVars) {
   const map: Record<string, string> = {
     nome: vars.name ?? "",
@@ -79,6 +85,8 @@ export function applyPromptTemplate(template: string, vars: PromptVars) {
     categoria: vars.category ?? "",
     category: vars.category ?? "",
     website: vars.website ?? "",
+    consultantname: vars.consultantName ?? "",
+    consultor: vars.consultantName ?? "",
   };
 
   return template.replace(/\{\{\s*([a-zA-Z_]+)\s*\}\}/g, (_, key: string) => {

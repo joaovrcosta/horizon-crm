@@ -44,6 +44,19 @@ function serializePrompt(p: {
 
 function canManagePrompt(
   user: { id: string; permissions: readonly string[] },
+  prompt: { createdById: string; visibility?: PromptVisibility },
+) {
+  if (user.permissions.includes("prompts:manage_all" satisfies PermissionKey)) {
+    return true;
+  }
+  if (prompt.createdById === user.id) return true;
+  // Templates públicos podem ser editados por qualquer membro da equipe
+  if (prompt.visibility === PromptVisibility.PUBLIC) return true;
+  return false;
+}
+
+function canDeletePrompt(
+  user: { id: string; permissions: readonly string[] },
   prompt: { createdById: string },
 ) {
   return (
@@ -57,7 +70,10 @@ function canViewPrompt(
   prompt: { createdById: string; visibility: PromptVisibility },
 ) {
   if (prompt.visibility === PromptVisibility.PUBLIC) return true;
-  return canManagePrompt(user, prompt);
+  return (
+    user.permissions.includes("prompts:manage_all" satisfies PermissionKey) ||
+    prompt.createdById === user.id
+  );
 }
 
 router.use(requireAuth);
@@ -193,7 +209,7 @@ router.delete("/:id", async (req, res, next) => {
     if (!existing) {
       throw new AppError(404, "Template de e-mail não encontrado");
     }
-    if (!canManagePrompt(req.user!, existing)) {
+    if (!canDeletePrompt(req.user!, existing)) {
       throw new AppError(403, "Sem permissão para remover este template");
     }
 

@@ -439,6 +439,7 @@ export default function ProspectsPage() {
             address: selected.address,
             category: selected.category,
             website: selected.website,
+            consultantName: user?.name,
           }),
         );
       }
@@ -460,6 +461,7 @@ export default function ProspectsPage() {
         address: selected.address,
         category: selected.category,
         website: selected.website,
+        consultantName: user?.name,
       }),
     );
     if (!emailSubject.trim()) {

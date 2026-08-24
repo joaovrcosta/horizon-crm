@@ -109,6 +109,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
             applyPromptTemplate(sig.defaultIntro, {
               name: toName,
               email: toEmail,
+              consultantName: user?.name,
             }),
           );
         }
@@ -211,6 +212,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
       applyPromptTemplate(prompt.content, {
         name: toName,
         email: toEmail || toQuery,
+        consultantName: user?.name,
       }),
     );
     if (!subject.trim()) setSubject(prompt.title);

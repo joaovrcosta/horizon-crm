@@ -58,7 +58,15 @@ export default function PromptsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visibilityFilter]);
 
-  function canManage(prompt: Prompt) {
+  function canEdit(prompt: Prompt) {
+    return (
+      can("prompts:manage_all") ||
+      prompt.createdById === user?.id ||
+      prompt.visibility === "PUBLIC"
+    );
+  }
+
+  function canDelete(prompt: Prompt) {
     return can("prompts:manage_all") || prompt.createdById === user?.id;
   }
 
@@ -207,25 +215,25 @@ export default function PromptsPage() {
                 <IconCopy size={16} />
                 {copiedId === prompt.id ? "Copiado!" : "Copiar"}
               </button>
-              {canManage(prompt) ? (
-                <>
-                  <button
-                    className="btn btn-secondary"
-                    type="button"
-                    onClick={() => openEdit(prompt)}
-                  >
-                    <IconEdit size={16} />
-                    Editar
-                  </button>
-                  <button
-                    className="btn btn-danger"
-                    type="button"
-                    onClick={() => void removePrompt(prompt)}
-                  >
-                    <IconTrash size={16} />
-                    Remover
-                  </button>
-                </>
+              {canEdit(prompt) ? (
+                <button
+                  className="btn btn-secondary"
+                  type="button"
+                  onClick={() => openEdit(prompt)}
+                >
+                  <IconEdit size={16} />
+                  Editar
+                </button>
+              ) : null}
+              {canDelete(prompt) ? (
+                <button
+                  className="btn btn-danger"
+                  type="button"
+                  onClick={() => void removePrompt(prompt)}
+                >
+                  <IconTrash size={16} />
+                  Remover
+                </button>
               ) : null}
             </div>
           </article>
@@ -266,8 +274,9 @@ export default function PromptsPage() {
               <details className="template-vars-dropdown">
                 <summary>Variáveis disponíveis para personalizar o e-mail</summary>
                 <p className="field-hint">
-                  Ao enviar e-mail a partir de um cliente, estas variáveis são
-                  preenchidas automaticamente com os dados dele:
+                  Ao enviar e-mail, estas variáveis são preenchidas
+                  automaticamente. Use <code>{"{{consultantName}}"}</code> para
+                  o nome de quem está logado.
                 </p>
                 <ul className="template-vars-list">
                   {PROMPT_TEMPLATE_VARIABLE_HINTS.map(({ keys, label }) => (
