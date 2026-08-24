@@ -55,50 +55,51 @@ export default function LoginForm() {
         {theme === "dark" ? <IconSun size={18} /> : <IconMoon size={18} />}
       </button>
 
-      <form className="login-card" onSubmit={onSubmit}>
+      <div className="login-shell">
         <h1 className="login-brand">
           <img
             src="/brand/horizon-logo.svg"
             alt=""
             className="login-brand-logo"
-            width={85}
-            height={32}
+            width={106}
+            height={40}
           />
           <span className="login-brand-text">horizon.</span>
         </h1>
-        <p>Acesse o painel da agência</p>
 
-        {error ? <p className="error">{error}</p> : null}
+        <form className="login-card" onSubmit={onSubmit}>
+          {error ? <p className="error">{error}</p> : null}
 
-        <label htmlFor="email">Email</label>
-        <input
-          id="email"
-          type="email"
-          autoComplete="username"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
+          <label htmlFor="email">Email</label>
+          <input
+            id="email"
+            type="email"
+            autoComplete="username"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
 
-        <label htmlFor="password">Senha</label>
-        <input
-          id="password"
-          type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          minLength={8}
-        />
+          <label htmlFor="password">Senha</label>
+          <input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            minLength={8}
+          />
 
-        <button className="btn btn-primary btn-block" disabled={submitting}>
-          {submitting ? (
-            <span className="btn-spinner" aria-label="Entrando" />
-          ) : (
-            "Entrar"
-          )}
-        </button>
-      </form>
+          <button className="btn btn-primary btn-block" disabled={submitting}>
+            {submitting ? (
+              <span className="btn-spinner" aria-label="Entrando" />
+            ) : (
+              "Entrar"
+            )}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
