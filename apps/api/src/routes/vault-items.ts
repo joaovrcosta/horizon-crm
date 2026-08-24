@@ -8,6 +8,10 @@ import { canManageVault, canViewVault } from "./vaults";
 
 const router = Router({ mergeParams: true });
 
+function parseVaultId(params: object) {
+  return z.string().cuid().parse((params as { vaultId?: string }).vaultId);
+}
+
 const createSchema = z.object({
   title: z.string().min(1).max(200),
   content: z.string().min(1).max(20000),
@@ -48,7 +52,7 @@ router.use(requireAuth);
 
 router.get("/", async (req, res, next) => {
   try {
-    const vaultId = z.string().cuid().parse(req.params.vaultId);
+    const vaultId = parseVaultId(req.params);
     await getAccessibleVault(vaultId, req.user!);
 
     const items = await prisma.vaultItem.findMany({
@@ -66,7 +70,7 @@ router.get("/", async (req, res, next) => {
 
 router.post("/", async (req, res, next) => {
   try {
-    const vaultId = z.string().cuid().parse(req.params.vaultId);
+    const vaultId = parseVaultId(req.params);
     const vault = await getAccessibleVault(vaultId, req.user!);
     if (!canManageVault(req.user!, vault)) {
       throw new AppError(403, "Sem permissão para adicionar itens neste cofre");
@@ -107,7 +111,7 @@ router.post("/", async (req, res, next) => {
 
 router.patch("/:itemId", async (req, res, next) => {
   try {
-    const vaultId = z.string().cuid().parse(req.params.vaultId);
+    const vaultId = parseVaultId(req.params);
     const itemId = z.string().cuid().parse(req.params.itemId);
     const vault = await getAccessibleVault(vaultId, req.user!);
     if (!canManageVault(req.user!, vault)) {
@@ -146,7 +150,7 @@ router.patch("/:itemId", async (req, res, next) => {
 
 router.delete("/:itemId", async (req, res, next) => {
   try {
-    const vaultId = z.string().cuid().parse(req.params.vaultId);
+    const vaultId = parseVaultId(req.params);
     const itemId = z.string().cuid().parse(req.params.itemId);
     const vault = await getAccessibleVault(vaultId, req.user!);
     if (!canManageVault(req.user!, vault)) {

@@ -52,6 +52,11 @@ export function createApp() {
     res.json(payload);
   });
 
+  // Keep-alive para UptimeRobot (Render free sleep)
+  app.get("/ping", (_req, res) => {
+    res.status(200).json({ pong: true });
+  });
+
   app.use("/auth", authRoutes);
   app.use("/users", usersRoutes);
   app.use("/stats", statsRoutes);
