@@ -132,7 +132,29 @@ export function ProspectsSkeleton() {
       </aside>
 
       <section className="detail-pane">
-        <ProspectDetailSkeleton />
+        <div className="detail-tabs">
+          <Skeleton width={72} height={14} />
+          <Skeleton width={80} height={14} />
+        </div>
+        <div style={{ paddingTop: 8 }}>
+          <Skeleton width="40%" height={28} />
+          <Skeleton width="55%" height={14} style={{ marginTop: 12 }} />
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 12,
+              marginTop: 24,
+            }}
+          >
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i}>
+                <Skeleton width={72} height={12} style={{ marginBottom: 8 }} />
+                <Skeleton width="100%" height={36} radius={6} />
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
     </SkeletonBlock>
   );

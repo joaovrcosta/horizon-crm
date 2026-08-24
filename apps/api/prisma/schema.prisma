@@ -99,6 +99,8 @@ model Prospect {
   mapsUrl        String?
   website        String?
   category       String?
+  country        String?
+  languages      String[]           @default([])
   status         ProspectStatus     @default(NEW)
   notes          String?
   lostReason     String?

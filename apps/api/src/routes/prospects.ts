@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { ProspectStatus } from "@prisma/client";
 import { z } from "zod";
-import { digitsOnly, type ApiResponse, type Prospect } from "@horizon/shared";
+import { digitsOnly, getCountryFilterValues, normalizeCountryCode, type ApiResponse, type Prospect } from "@horizon/shared";
 import { AppError } from "../lib/errors";
 import { prisma } from "../lib/prisma";
 import {
@@ -14,6 +14,15 @@ import {
   startOfToday,
 } from "../lib/prospects";
 import { requireAuth } from "../middleware/auth";
+
+function parseCountry(value: string | null | undefined) {
+  if (!value?.trim()) return null;
+  const code = normalizeCountryCode(value);
+  if (!code) {
+    throw new AppError(400, "País inválido. Selecione um país da lista.");
+  }
+  return code;
+}
 
 const router = Router();
 
@@ -36,6 +45,8 @@ const createSchema = z.object({
   mapsUrl: z.string().max(2000).optional().nullable(),
   website: z.string().max(2000).optional().nullable(),
   category: z.string().max(120).optional().nullable(),
+  country: z.string().max(120).optional().nullable(),
+  languages: z.array(z.string().min(1).max(80)).max(20).optional(),
   status: statusEnum.optional(),
   notes: z.string().max(5000).optional().nullable(),
   lostReason: z.string().max(500).optional().nullable(),
@@ -58,8 +69,16 @@ router.get("/", async (req, res, next) => {
         q: z.string().optional(),
         assigneeId: z.string().cuid().optional(),
         due: dueEnum.optional(),
+        country: z.string().optional(),
       })
       .parse(req.query);
+
+    const countryCode = query.country
+      ? normalizeCountryCode(query.country)
+      : null;
+    if (query.country && !countryCode) {
+      throw new AppError(400, "País inválido.");
+    }
 
     const dueFilter =
       query.due === "overdue"
@@ -80,6 +99,14 @@ router.get("/", async (req, res, next) => {
       where: {
         ...(query.status ? { status: query.status as ProspectStatus } : {}),
         ...(query.assigneeId ? { assigneeId: query.assigneeId } : {}),
+        ...(countryCode
+          ? {
+              country: {
+                in: getCountryFilterValues(countryCode),
+                mode: "insensitive",
+              },
+            }
+          : {}),
         ...dueFilter,
         ...(query.q
           ? {
@@ -153,6 +180,10 @@ router.post("/", async (req, res, next) => {
         mapsUrl,
         website: normalizeUrl(body.website),
         category: emptyToNull(body.category),
+        country: parseCountry(body.country),
+        languages: (body.languages ?? [])
+          .map((l) => l.trim())
+          .filter(Boolean),
         status,
         notes: emptyToNull(body.notes),
         lostReason:
@@ -242,6 +273,16 @@ router.patch("/:id", async (req, res, next) => {
           : {}),
         ...(body.category !== undefined
           ? { category: emptyToNull(body.category) }
+          : {}),
+        ...(body.country !== undefined
+          ? { country: parseCountry(body.country) }
+          : {}),
+        ...(body.languages !== undefined
+          ? {
+              languages: body.languages
+                .map((l) => l.trim())
+                .filter(Boolean),
+            }
           : {}),
         ...(body.status !== undefined ? { status: nextStatus } : {}),
         ...(body.notes !== undefined ? { notes: emptyToNull(body.notes) } : {}),

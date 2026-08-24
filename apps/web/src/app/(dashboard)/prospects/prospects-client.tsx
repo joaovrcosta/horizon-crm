@@ -20,6 +20,8 @@ import {
   copyHtmlToClipboard,
 } from "@/lib/email-signature";
 import { EmailSignaturePreview } from "@/components/email-signature-preview";
+import { CountryBadge } from "@/components/country-badge";
+import { CountrySelect } from "@/components/country-select";
 import { ProspectsListSkeleton } from "@/components/skeleton";
 import { useToast } from "@/components/toast";
 import {
@@ -52,6 +54,8 @@ type FormState = {
   mapsUrl: string;
   website: string;
   category: string;
+  country: string;
+  languages: string;
   status: ProspectStatus;
   notes: string;
   lostReason: string;
@@ -69,6 +73,8 @@ const emptyForm = (assigneeId = ""): FormState => ({
   mapsUrl: "",
   website: "",
   category: "",
+  country: "",
+  languages: "",
   status: "NEW",
   notes: "",
   lostReason: "",
@@ -76,6 +82,13 @@ const emptyForm = (assigneeId = ""): FormState => ({
   nextContactAt: "",
   assigneeId,
 });
+
+function parseLanguages(value: string): string[] {
+  return value
+    .split(/[,;]/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+}
 
 function prospectToForm(p: Prospect): FormState {
   return {
@@ -87,6 +100,8 @@ function prospectToForm(p: Prospect): FormState {
     mapsUrl: p.mapsUrl ?? "",
     website: p.website ?? "",
     category: p.category ?? "",
+    country: p.country ?? "",
+    languages: (p.languages ?? []).join(", "),
     status: p.status,
     notes: p.notes ?? "",
     lostReason: p.lostReason ?? "",
@@ -119,10 +134,12 @@ export default function ProspectsPage() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [dueFilter, setDueFilter] = useState("");
+  const [countryFilter, setCountryFilter] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const filtersRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [formError, setFormError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm(user?.id ?? ""));
@@ -131,6 +148,9 @@ export default function ProspectsPage() {
   const [activityType, setActivityType] = useState<ActivityType>("NOTE");
   const [activityContent, setActivityContent] = useState("");
   const [savingActivity, setSavingActivity] = useState(false);
+  const [detailTab, setDetailTab] = useState<"overview" | "activity">(
+    "overview",
+  );
 
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [prompts, setPrompts] = useState<Prompt[]>([]);
@@ -178,6 +198,7 @@ export default function ProspectsPage() {
       if (query.trim()) params.set("q", query.trim());
       if (statusFilter) params.set("status", statusFilter);
       if (dueFilter) params.set("due", dueFilter);
+      if (countryFilter) params.set("country", countryFilter);
       const qs = params.toString();
       const data = await apiFetch<Prospect[]>(
         `/prospects${qs ? `?${qs}` : ""}`,
@@ -201,7 +222,7 @@ export default function ProspectsPage() {
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, dueFilter]);
+  }, [statusFilter, dueFilter, countryFilter]);
 
   useEffect(() => {
     if (!filtersOpen) return;
@@ -229,11 +250,18 @@ export default function ProspectsPage() {
     else setActivities([]);
   }, [selectedId]);
 
-  const activeFilterCount = [statusFilter, dueFilter].filter(Boolean).length;
+  useEffect(() => {
+    setDetailTab("overview");
+  }, [selectedId]);
+
+  const activeFilterCount = [statusFilter, dueFilter, countryFilter].filter(
+    Boolean,
+  ).length;
 
   function openCreateModal() {
     setEditingId(null);
     setForm(emptyForm(user?.id ?? ""));
+    setFormError("");
     setShowModal(true);
   }
 
@@ -241,21 +269,25 @@ export default function ProspectsPage() {
     if (!selected) return;
     setEditingId(selected.id);
     setForm(prospectToForm(selected));
+    setFormError("");
     setShowModal(true);
   }
 
   function closeProspectModal() {
     setShowModal(false);
     setEditingId(null);
+    setFormError("");
     setForm(emptyForm(user?.id ?? ""));
   }
 
   async function saveProspect(event: FormEvent) {
     event.preventDefault();
     setSaving(true);
-    setError("");
+    setFormError("");
     const payload = {
       ...form,
+      languages: parseLanguages(form.languages),
+      country: form.country || null,
       estimatedValue: form.estimatedValue
         ? Number(form.estimatedValue)
         : null,
@@ -285,7 +317,7 @@ export default function ProspectsPage() {
         setSelectedId(created.id);
       }
     } catch (err) {
-      setError(
+      setFormError(
         err instanceof Error
           ? err.message
           : editingId
@@ -314,7 +346,7 @@ export default function ProspectsPage() {
 
   async function removeSelected() {
     if (!selected) return;
-    if (!confirm(`Remover prospect "${selected.name}"?`)) return;
+    if (!confirm(`Remover cliente "${selected.name}"?`)) return;
     try {
       await apiFetch<void>(`/prospects/${selected.id}`, { method: "DELETE" });
       setProspects((prev) => prev.filter((p) => p.id !== selected.id));
@@ -483,7 +515,7 @@ export default function ProspectsPage() {
       <section className="list-pane">
         <div className="list-header">
           <h2>
-            Prospects
+            Clientes
             <span className="count">{prospects.length}</span>
           </h2>
         </div>
@@ -546,6 +578,14 @@ export default function ProspectsPage() {
                       <option value="upcoming">Próximos</option>
                     </select>
                   </label>
+                  <label>
+                    País
+                    <CountrySelect
+                      value={countryFilter}
+                      onChange={setCountryFilter}
+                      placeholder="Todos os países"
+                    />
+                  </label>
                   <div className="filters-panel-actions">
                     <button
                       type="button"
@@ -554,6 +594,7 @@ export default function ProspectsPage() {
                       onClick={() => {
                         setStatusFilter("");
                         setDueFilter("");
+                        setCountryFilter("");
                       }}
                     >
                       Limpar
@@ -599,6 +640,9 @@ export default function ProspectsPage() {
                     <span className={`status-pill status-${p.status}`}>
                       {STATUS_LABELS[p.status]}
                     </span>
+                    {p.country ? (
+                      <CountryBadge code={p.country} showName={false} />
+                    ) : null}
                     {isOverdue(p.nextContactAt, p.status) ? (
                       <span className="status-pill status-overdue">Atrasado</span>
                     ) : null}
@@ -632,7 +676,7 @@ export default function ProspectsPage() {
 
           {!loading && prospects.length === 0 ? (
             <p className="list-empty">
-              Nenhum prospect ainda. Adicione leads do Google Maps.
+              Nenhum cliente ainda. Adicione leads do Google Maps.
             </p>
           ) : null}
         </div>
@@ -644,20 +688,38 @@ export default function ProspectsPage() {
             onClick={openCreateModal}
           >
             <IconPlus size={16} />
-            Adicionar prospect
+            Adicionar cliente
           </button>
         </div>
       </section>
 
       <section className="detail-pane">
         {!selected ? (
-          <div className="detail-empty">Selecione um prospect</div>
+          <div className="detail-empty">Selecione um cliente</div>
         ) : (
           <>
             <div className="detail-tabs">
-              <span>Overview</span>
+              <button
+                type="button"
+                className={detailTab === "overview" ? "active" : undefined}
+                onClick={() => setDetailTab("overview")}
+              >
+                Overview
+              </button>
+              <button
+                type="button"
+                className={detailTab === "activity" ? "active" : undefined}
+                onClick={() => setDetailTab("activity")}
+              >
+                Atividade
+                {activities.length > 0 ? (
+                  <span className="detail-tab-count">{activities.length}</span>
+                ) : null}
+              </button>
             </div>
 
+            {detailTab === "overview" ? (
+              <>
             <div className="detail-section">
               <h3>
                 {selected.name}
@@ -729,6 +791,37 @@ export default function ProspectsPage() {
                 <div className="kv-row">
                   <dt>Categoria</dt>
                   <dd>{selected.category || "—"}</dd>
+                </div>
+                <div className="kv-row">
+                  <dt>País</dt>
+                  <dd>
+                    <CountrySelect
+                      value={selected.country ?? ""}
+                      onChange={(country) => {
+                        const next = country || null;
+                        if ((selected.country ?? "") !== (country || "")) {
+                          void updateSelected({ country: next });
+                        }
+                      }}
+                    />
+                  </dd>
+                </div>
+                <div className="kv-row">
+                  <dt>Idiomas</dt>
+                  <dd>
+                    <input
+                      defaultValue={(selected.languages ?? []).join(", ")}
+                      key={`langs-${selected.id}`}
+                      placeholder="Ex.: Português, Inglês"
+                      onBlur={(e) => {
+                        const next = parseLanguages(e.target.value);
+                        const prev = selected.languages ?? [];
+                        if (next.join("|") !== prev.join("|")) {
+                          void updateSelected({ languages: next });
+                        }
+                      }}
+                    />
+                  </dd>
                 </div>
                 <div className="kv-row">
                   <dt>Telefone</dt>
@@ -852,9 +945,10 @@ export default function ProspectsPage() {
                 }}
               />
             </div>
-
+              </>
+            ) : (
             <div className="detail-section">
-              <h3>Atividades</h3>
+              <h3>Histórico</h3>
               <form className="activity-form" onSubmit={addActivity}>
                 <select
                   value={activityType}
@@ -897,6 +991,7 @@ export default function ProspectsPage() {
                 ) : null}
               </div>
             </div>
+            )}
           </>
         )}
       </section>
@@ -904,7 +999,8 @@ export default function ProspectsPage() {
       {showModal ? (
         <div className="modal-backdrop">
           <form className="modal modal-wide" onSubmit={saveProspect}>
-            <h2>{editingId ? "Editar prospect" : "Novo prospect"}</h2>
+            <h2>{editingId ? "Editar cliente" : "Novo cliente"}</h2>
+            {formError ? <p className="form-error">{formError}</p> : null}
             <div className="form-grid form-grid-2">
               <label>
                 Nome *
@@ -921,6 +1017,25 @@ export default function ProspectsPage() {
                   onChange={(e) =>
                     setForm({ ...form, category: e.target.value })
                   }
+                />
+              </label>
+              <label>
+                País
+                <CountrySelect
+                  value={form.country}
+                  onChange={(country) =>
+                    setForm({ ...form, country })
+                  }
+                />
+              </label>
+              <label>
+                Idiomas
+                <input
+                  value={form.languages}
+                  onChange={(e) =>
+                    setForm({ ...form, languages: e.target.value })
+                  }
+                  placeholder="Português, Inglês"
                 />
               </label>
               <label>

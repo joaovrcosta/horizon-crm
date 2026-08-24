@@ -74,6 +74,8 @@ export type Prospect = {
   mapsUrl: string | null;
   website: string | null;
   category: string | null;
+  country: string | null; // ISO 3166-1 alpha-2 (ex.: BR)
+  languages: string[];
   status: ProspectStatus;
   notes: string | null;
   lostReason: string | null;
@@ -96,12 +98,33 @@ export type ProspectActivity = {
   createdAt: string;
 };
 
+export type MetricTrend = {
+  /** Variação percentual vs período anterior */
+  percent: number;
+  /** Variação absoluta vs período anterior */
+  delta: number;
+};
+
+export type StatsPeriod = {
+  days: number | null;
+  from: string;
+  to: string;
+  compareLabel: string;
+};
+
 export type ProspectStats = {
   total: number;
   byStatus: Record<ProspectStatus, number>;
   overdueCount: number;
   dueTodayCount: number;
   wonThisMonth: number;
+  period: StatsPeriod;
+  trends: {
+    total: MetricTrend;
+    overdue: MetricTrend;
+    dueToday: MetricTrend;
+    wonThisMonth: MetricTrend;
+  };
   overdue: Array<{
     id: string;
     name: string;
@@ -203,3 +226,11 @@ export function digitsOnly(value: string | null | undefined): string | null {
   const digits = value.replace(/\D/g, "");
   return digits.length ? digits : null;
 }
+
+export type { CountryOption } from "./countries";
+export {
+  getCountryName,
+  getCountryFilterValues,
+  getCountryOptions,
+  normalizeCountryCode,
+} from "./countries";

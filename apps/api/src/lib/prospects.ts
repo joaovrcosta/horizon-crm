@@ -1,5 +1,5 @@
 import { ActivityType, Prisma, ProspectStatus } from "@prisma/client";
-import { digitsOnly } from "@horizon/shared";
+import { digitsOnly, normalizeCountryCode } from "@horizon/shared";
 import type { Prospect } from "@horizon/shared";
 import { AppError } from "./errors";
 import { prisma } from "./prisma";
@@ -22,6 +22,8 @@ export type ProspectWithAssignee = {
   mapsUrl: string | null;
   website: string | null;
   category: string | null;
+  country: string | null;
+  languages: string[];
   status: ProspectStatus;
   notes: string | null;
   lostReason: string | null;
@@ -45,6 +47,8 @@ export function serializeProspect(p: ProspectWithAssignee): Prospect {
     mapsUrl: p.mapsUrl,
     website: p.website,
     category: p.category,
+    country: normalizeCountryCode(p.country),
+    languages: p.languages ?? [],
     status: p.status,
     notes: p.notes,
     lostReason: p.lostReason,
@@ -75,7 +79,7 @@ export async function assertNoDuplicate(params: {
       select: { id: true, name: true },
     });
     if (conflict) {
-      throw new AppError(409, "Já existe um prospect com este telefone", {
+      throw new AppError(409, "Já existe um cliente com este telefone", {
         conflictId: conflict.id,
         conflictName: conflict.name,
         field: "phone",
@@ -92,7 +96,7 @@ export async function assertNoDuplicate(params: {
       select: { id: true, name: true },
     });
     if (conflict) {
-      throw new AppError(409, "Já existe um prospect com este link do Maps", {
+      throw new AppError(409, "Já existe um cliente com este link do Maps", {
         conflictId: conflict.id,
         conflictName: conflict.name,
         field: "mapsUrl",
@@ -149,4 +153,103 @@ export function startOfMonth() {
   d.setDate(1);
   d.setHours(0, 0, 0, 0);
   return d;
+}
+
+export function startOfLastMonth() {
+  const d = startOfMonth();
+  d.setMonth(d.getMonth() - 1);
+  return d;
+}
+
+export function endOfDay(date: Date) {
+  const d = new Date(date);
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
+
+export function startOfDay(date: Date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+export function parseDateOnly(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (!match) {
+    throw new AppError(400, "Data inválida. Use o formato AAAA-MM-DD.");
+  }
+  const [, year, month, day] = match;
+  const parsed = new Date(Number(year), Number(month) - 1, Number(day));
+  if (
+    parsed.getFullYear() !== Number(year) ||
+    parsed.getMonth() !== Number(month) - 1 ||
+    parsed.getDate() !== Number(day)
+  ) {
+    throw new AppError(400, "Data inválida.");
+  }
+  return parsed;
+}
+
+export type StatsPeriodRange = {
+  days: number | null;
+  from: Date;
+  to: Date;
+  prevFrom: Date;
+  prevTo: Date;
+  compareLabel: string;
+};
+
+const STATS_PRESET_DAYS = [7, 14, 30] as const;
+
+export function resolveStatsPeriod(params: {
+  days?: number;
+  from?: string;
+  to?: string;
+}): StatsPeriodRange {
+  let from: Date;
+  let to: Date;
+  let days: number | null;
+
+  if (params.from || params.to) {
+    if (!params.from || !params.to) {
+      throw new AppError(400, "Informe data inicial e final.");
+    }
+    from = startOfDay(parseDateOnly(params.from));
+    to = endOfDay(parseDateOnly(params.to));
+    days = null;
+  } else {
+    const preset = STATS_PRESET_DAYS.includes(
+      params.days as (typeof STATS_PRESET_DAYS)[number],
+    )
+      ? (params.days as (typeof STATS_PRESET_DAYS)[number])
+      : 7;
+    days = preset;
+    to = endOfToday();
+    from = daysAgo(preset - 1);
+  }
+
+  if (from.getTime() > to.getTime()) {
+    throw new AppError(400, "A data inicial deve ser anterior à final.");
+  }
+
+  const durationMs = to.getTime() - from.getTime();
+  const prevTo = new Date(from.getTime() - 1);
+  const prevFrom = new Date(prevTo.getTime() - durationMs);
+
+  const compareLabel = days
+    ? `${days} dias anteriores`
+    : "período anterior";
+
+  return { days, from, to, prevFrom, prevTo, compareLabel };
+}
+
+export function daysAgo(days: number) {
+  const d = startOfToday();
+  d.setDate(d.getDate() - days);
+  return d;
+}
+
+export function percentChange(current: number, previous: number) {
+  if (previous === 0) return current === 0 ? 0 : 100;
+  return Math.round(((current - previous) / previous) * 100);
 }
