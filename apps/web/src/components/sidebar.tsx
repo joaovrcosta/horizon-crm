@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { useTheme } from "@/components/theme-provider";
 import {
@@ -18,6 +17,7 @@ import {
   IconSun,
   IconUsers,
 } from "@/components/icons";
+import { useSidebarCollapsed } from "@/hooks/use-sidebar-collapsed";
 
 const NAV = [
   { href: "/", label: "Dashboard", icon: IconDashboard, exact: true },
@@ -27,33 +27,19 @@ const NAV = [
   { href: "/settings", label: "Configurações", icon: IconSettings },
 ] as const;
 
-const STORAGE_KEY = "horizon-sidebar-collapsed";
-
-export function Sidebar() {
+export function Sidebar({
+  initialCollapsed = true,
+}: {
+  initialCollapsed?: boolean;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout, can } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const [collapsed, setCollapsed] = useState(false);
-
-  useEffect(() => {
-    try {
-      setCollapsed(localStorage.getItem(STORAGE_KEY) === "1");
-    } catch {
-      /* ignore */
-    }
-  }, []);
+  const { collapsed, setCollapsed } = useSidebarCollapsed(initialCollapsed);
 
   function toggleCollapsed() {
-    setCollapsed((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
+    setCollapsed(!collapsed);
   }
 
   async function handleLogout() {

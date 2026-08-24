@@ -5,7 +5,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 import { AppShellSkeleton } from "@/components/skeleton";
 
-export function AuthGuard({ children }: { children: React.ReactNode }) {
+export function AuthGuard({
+  children,
+  initialSidebarCollapsed = true,
+}: {
+  children: React.ReactNode;
+  initialSidebarCollapsed?: boolean;
+}) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -17,7 +23,12 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [loading, user, router, pathname]);
 
   if (loading) {
-    return <AppShellSkeleton pathname={pathname} />;
+    return (
+      <AppShellSkeleton
+        pathname={pathname}
+        initialSidebarCollapsed={initialSidebarCollapsed}
+      />
+    );
   }
 
   if (!user) {

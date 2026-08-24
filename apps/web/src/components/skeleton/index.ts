@@ -9,4 +9,5 @@ export {
 export { PromptsSkeleton } from "./prompts";
 export { UsersSkeleton } from "./users";
 export { SettingsSkeleton } from "./settings";
+export { SidebarSkeleton } from "./sidebar-skeleton";
 export { AppShellSkeleton } from "./app-shell";
