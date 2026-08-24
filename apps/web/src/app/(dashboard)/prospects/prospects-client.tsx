@@ -332,6 +332,8 @@ export default function ProspectsPage() {
       category: form.category || null,
       languages: form.languages,
       country: form.country || null,
+      website: form.website.trim() || null,
+      mapsUrl: form.mapsUrl.trim() || null,
       estimatedValue: form.estimatedValue
         ? Number(form.estimatedValue)
         : null,
@@ -1294,13 +1296,15 @@ export default function ProspectsPage() {
                 />
               </label>
               <label>
-                Website
+                Website (opcional)
                 <input
-                  type="url"
+                  type="text"
+                  inputMode="url"
                   value={form.website}
                   onChange={(e) =>
                     setForm({ ...form, website: e.target.value })
                   }
+                  placeholder="exemplo.com.br"
                 />
               </label>
               <label>

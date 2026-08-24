@@ -136,6 +136,16 @@ export function normalizeUrl(value?: string | null) {
   return normalized;
 }
 
+/** Site do cliente — opcional; aceita domínio sem protocolo. */
+export function normalizeWebsiteUrl(value?: string | null) {
+  const normalized = emptyToNull(value?.trim());
+  if (!normalized) return null;
+  if (!/^https?:\/\//i.test(normalized)) {
+    return `https://${normalized}`;
+  }
+  return normalized;
+}
+
 export function startOfToday() {
   const d = new Date();
   d.setHours(0, 0, 0, 0);

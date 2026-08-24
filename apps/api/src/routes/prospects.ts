@@ -10,6 +10,7 @@ import {
   endOfToday,
   logStatusChange,
   normalizeUrl,
+  normalizeWebsiteUrl,
   serializeProspect,
   startOfToday,
 } from "../lib/prospects";
@@ -279,7 +280,7 @@ router.post("/", async (req, res, next) => {
         email,
         whatsapp,
         mapsUrl,
-        website: normalizeUrl(body.website),
+        website: normalizeWebsiteUrl(body.website),
         category: await resolveTagName("CATEGORY", emptyToNull(body.category)),
         country: parseCountry(body.country),
         languages: await resolveTagNames("LANGUAGE", body.languages ?? []),
@@ -368,7 +369,7 @@ router.patch("/:id", async (req, res, next) => {
           : {}),
         ...(body.mapsUrl !== undefined ? { mapsUrl: nextMaps } : {}),
         ...(body.website !== undefined
-          ? { website: normalizeUrl(body.website) }
+          ? { website: normalizeWebsiteUrl(body.website) }
           : {}),
         ...(body.category !== undefined
           ? { category: await resolveTagName("CATEGORY", emptyToNull(body.category)) }
