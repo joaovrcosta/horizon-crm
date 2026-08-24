@@ -19,6 +19,7 @@
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:migrate": "npm run prisma:migrate -w @horizon/api",
+    "db:deploy": "npm run prisma:deploy -w @horizon/api",
     "db:seed": "npm run prisma:seed -w @horizon/api",
     "db:setup": "npm run db:up && npm run db:migrate && npm run db:seed"
   },

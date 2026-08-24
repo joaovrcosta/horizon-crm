@@ -49,10 +49,30 @@ Só o admin cria novos usuários em **Usuários**.
 |--------|-----------|
 | `npm run db:up` | Sobe Postgres no Docker |
 | `npm run db:down` | Para o Postgres |
-| `npm run db:migrate` | Roda migrations Prisma |
+| `npm run db:migrate` | Roda migrations Prisma (dev) |
+| `npm run db:deploy` | Aplica migrations (produção) |
 | `npm run db:seed` | Recria/atualiza admin |
 | `npm run dev` | Shared + API + Web |
 | `npm run build` | Build de produção |
+
+## Deploy (Render + Supabase)
+
+A API usa duas URLs de banco:
+
+| Variável | Uso | Supabase |
+|----------|-----|----------|
+| `DATABASE_URL` | Runtime da API (pooler) | Connection pooling, porta **6543**, com `?pgbouncer=true&connection_limit=1` |
+| `DIRECT_URL` | Migrations Prisma | Direct connection, porta **5432** |
+
+No **Render** (serviço da API):
+
+- **Build command:** `npm install && npm run prisma:deploy -w @horizon/api && npm run build -w @horizon/api`
+- **Start command:** `npm run start -w @horizon/api`
+- **Root directory:** repositório (monorepo)
+
+Variáveis obrigatórias no Render: `DATABASE_URL`, `DIRECT_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `CORS_ORIGIN`, `NODE_ENV=production`, etc.
+
+Se o deploy travar no `prisma migrate deploy`, confira se `DIRECT_URL` aponta para a porta **5432** (não o pooler 6543).
 
 ## Funcionalidades
 
