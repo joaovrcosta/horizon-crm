@@ -84,25 +84,31 @@ router.get("/tags", async (req, res, next) => {
     const slug = q ? slugifyTag(q) : "";
 
     const tags = await prisma.prospectTag.findMany({
-      where: {
-        kind: query.kind,
-        ...(q
-          ? {
-              OR: [
-                { name: { contains: q, mode: "insensitive" } },
-                ...(slug
-                  ? [{ slug: { contains: slug, mode: "insensitive" as const } }]
-                  : []),
-              ],
-            }
-          : {}),
-      },
+      where: { kind: query.kind },
       orderBy: { name: "asc" },
-      take: 40,
+      take: 200,
     });
 
+    const seen = new Set<string>();
+    const unique = tags.filter((tag) => {
+      const key = slugifyTag(tag.name) || tag.slug;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    const filtered = q
+      ? unique.filter((tag) => {
+          const tagSlug = slugifyTag(tag.name);
+          return (
+            tag.name.toLowerCase().includes(q.toLowerCase()) ||
+            (slug && tagSlug.includes(slug))
+          );
+        })
+      : unique;
+
     res.json({
-      data: tags.map(serializeTag),
+      data: filtered.slice(0, 40).map(serializeTag),
     } satisfies ApiResponse<ProspectTag[]>);
   } catch (error) {
     next(error);

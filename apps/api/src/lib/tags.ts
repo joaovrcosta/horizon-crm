@@ -29,6 +29,31 @@ export function serializeTag(tag: {
   };
 }
 
+export async function findExistingTag(kind: ProspectTagKind, rawName: string) {
+  const name = normalizeTagName(rawName);
+  const slug = slugifyTag(name);
+  if (!name && !slug) return null;
+
+  const matches = await prisma.prospectTag.findMany({
+    where: {
+      kind,
+      OR: [
+        ...(slug ? [{ slug }] : []),
+        ...(name ? [{ name: { equals: name, mode: "insensitive" as const } }] : []),
+      ],
+    },
+  });
+  const bySlug = matches.find((tag) => slugifyTag(tag.name) === slug || tag.slug === slug);
+  if (bySlug) return bySlug;
+
+  const siblings = await prisma.prospectTag.findMany({ where: { kind } });
+  return (
+    siblings.find(
+      (tag) => slugifyTag(tag.name) === slug || tag.slug === slug,
+    ) ?? null
+  );
+}
+
 export async function upsertTag(kind: ProspectTagKind, rawName: string) {
   const name = normalizeTagName(rawName);
   const slug = slugifyTag(name);
@@ -36,11 +61,18 @@ export async function upsertTag(kind: ProspectTagKind, rawName: string) {
     throw new AppError(400, "Tag inválida.");
   }
 
-  return prisma.prospectTag.upsert({
-    where: { kind_slug: { kind, slug } },
-    create: { kind, name, slug },
-    update: {},
-  });
+  const existing = await findExistingTag(kind, name);
+  if (existing) return existing;
+
+  try {
+    return await prisma.prospectTag.create({
+      data: { kind, name, slug },
+    });
+  } catch {
+    const retry = await findExistingTag(kind, name);
+    if (retry) return retry;
+    throw new AppError(409, "Já existe uma tag com esse nome.");
+  }
 }
 
 export async function resolveTagName(
@@ -69,15 +101,5 @@ export async function resolveTagNames(
 }
 
 export async function findTagByQuery(kind: ProspectTagKind, raw: string) {
-  const slug = slugifyTag(raw);
-  const name = normalizeTagName(raw);
-  return prisma.prospectTag.findFirst({
-    where: {
-      kind,
-      OR: [
-        ...(slug ? [{ slug }] : []),
-        { name: { equals: name, mode: "insensitive" as const } },
-      ],
-    },
-  });
+  return findExistingTag(kind, raw);
 }

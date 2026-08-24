@@ -57,7 +57,7 @@ export function TagInput({
     [suggestions, selectedKeys],
   );
 
-  const exactMatch = visibleSuggestions.some(
+  const exactMatch = suggestions.some(
     (tag) => normalizeKey(tag.name) === normalizeKey(query),
   );
   const canCreate =
@@ -68,8 +68,14 @@ export function TagInput({
     !selectedKeys.has(normalizeKey(query));
 
   const options = useMemo(() => {
+    const queryKey = normalizeKey(query);
+    const sorted = [...visibleSuggestions].sort((a, b) => {
+      const aExact = Number(normalizeKey(a.name) === queryKey);
+      const bExact = Number(normalizeKey(b.name) === queryKey);
+      return bExact - aExact;
+    });
     const items: Array<{ type: "tag" | "create"; label: string; name: string }> =
-      visibleSuggestions.map((tag) => ({
+      sorted.map((tag) => ({
         type: "tag" as const,
         label: tag.name,
         name: tag.name,
@@ -125,23 +131,31 @@ export function TagInput({
 
   async function addTag(rawName: string, create: boolean) {
     const name = rawName.trim();
-    if (!name || selectedKeys.has(normalizeKey(name))) {
+    if (!name) {
       setQuery("");
       return;
     }
+    const key = normalizeKey(name);
+    const alreadySelected = value.find((item) => normalizeKey(item) === key);
+    if (alreadySelected) {
+      setQuery("");
+      return;
+    }
+    const existing = suggestions.find((tag) => normalizeKey(tag.name) === key);
+    const nextName = existing?.name ?? name;
     if (atLimit && max === 1) {
-      onChange([name]);
+      onChange([nextName]);
     } else if (atLimit) {
       return;
     } else {
-      onChange([...value, name]);
+      onChange([...value, nextName]);
     }
     setQuery("");
-    if (create) {
+    if (create && !existing) {
       try {
         const tag = await apiFetch<ProspectTag>("/prospects/tags", {
           method: "POST",
-          body: { kind, name },
+          body: { kind, name: nextName },
         });
         onChange(
           max === 1
