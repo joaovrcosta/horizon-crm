@@ -1387,7 +1387,13 @@ export default function ProspectsPage() {
               ) : null}
             </div>
 
-            {emailSignature ? (
+            {!loadingPrompts && emailSignature && !emailSignature.id ? (
+              <a href="/settings" className="compose-signature-alert">
+                Você ainda não tem assinatura. Cadastrar assinatura
+              </a>
+            ) : null}
+
+            {emailSignature?.id ? (
               <label className="compose-signature-toggle">
                 <input
                   type="checkbox"

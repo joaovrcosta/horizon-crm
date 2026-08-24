@@ -10,6 +10,7 @@ import {
   IconChevronRight,
   IconDashboard,
   IconLogout,
+  IconMail,
   IconMoon,
   IconPipeline,
   IconPrompt,
@@ -25,10 +26,10 @@ import { useSidebarCollapsed } from "@/hooks/use-sidebar-collapsed";
 const NAV = [
   { href: "/", label: "Dashboard", icon: IconDashboard, exact: true },
   { href: "/prospects", label: "Clientes", icon: IconProspects },
+  { href: "/mail", label: "E-mails", icon: IconMail },
   { href: "/pipeline", label: "Funil", icon: IconPipeline },
   { href: "/prompts", label: "E-mail templates", icon: IconPrompt },
   { href: "/vaults", label: "Cofres", icon: IconVault },
-  { href: "/settings", label: "Configurações", icon: IconSettings },
 ] as const;
 
 export function Sidebar({
@@ -67,7 +68,9 @@ export function Sidebar({
             width={85}
             height={28}
           />
-          <span className="sidebar-brand-text">horizon.</span>
+          <div className="sidebar-brand-copy">
+            <span className="sidebar-brand-text">horizon.</span>
+          </div>
         </div>
         <button
           type="button"
@@ -89,6 +92,25 @@ export function Sidebar({
           aria-label="Fechar menu"
         >
           <IconX size={16} />
+        </button>
+      </div>
+
+      <div className="sidebar-user-card" title={user?.email}>
+        <div className="avatar" aria-hidden>
+          {(user?.name ?? "?").slice(0, 1).toUpperCase()}
+        </div>
+        <div className="user-meta">
+          <strong>{user?.name}</strong>
+          <span>{user?.email}</span>
+        </div>
+        <button
+          type="button"
+          className="logout-btn"
+          onClick={handleLogout}
+          title="Sair"
+          aria-label="Sair"
+        >
+          <IconLogout size={15} />
         </button>
       </div>
 
@@ -115,7 +137,7 @@ export function Sidebar({
               onClick={onMobileClose}
             >
               <span className="nav-icon">
-                <Icon size={16} />
+                <Icon size={17} />
               </span>
               <span className="nav-label">{item.label}</span>
             </Link>
@@ -130,7 +152,7 @@ export function Sidebar({
             onClick={onMobileClose}
           >
             <span className="nav-icon">
-              <IconUsers size={16} />
+              <IconUsers size={17} />
             </span>
             <span className="nav-label">Usuários</span>
           </Link>
@@ -138,9 +160,23 @@ export function Sidebar({
       </nav>
 
       <div className="sidebar-footer">
+        <Link
+          href="/settings"
+          className={`nav-item nav-item-footer${pathname.startsWith("/settings") ? " active" : ""
+            }`}
+          title="Configurações"
+          onClick={onMobileClose}
+        >
+          <span className="nav-icon">
+            <IconSettings size={17} />
+          </span>
+          <span className="nav-label">Configurações</span>
+          <IconChevronRight size={14} className="nav-chevron" />
+        </Link>
+
         <button
           type="button"
-          className="nav-item theme-toggle"
+          className="nav-item nav-item-footer theme-toggle"
           onClick={toggleTheme}
           aria-label={
             theme === "dark" ? "Ativar tema claro" : "Ativar tema escuro"
@@ -148,31 +184,13 @@ export function Sidebar({
           title={theme === "dark" ? "Tema claro" : "Tema escuro"}
         >
           <span className="nav-icon">
-            {theme === "dark" ? <IconSun size={16} /> : <IconMoon size={16} />}
+            {theme === "dark" ? <IconSun size={17} /> : <IconMoon size={17} />}
           </span>
           <span className="nav-label">
             {theme === "dark" ? "Tema claro" : "Tema escuro"}
           </span>
+          <IconChevronRight size={14} className="nav-chevron" />
         </button>
-
-        <div className="user-card">
-          <div className="avatar" aria-hidden title={user?.name}>
-            {(user?.name ?? "?").slice(0, 1).toUpperCase()}
-          </div>
-          <div className="user-meta">
-            <strong>{user?.name}</strong>
-            <span>{user?.email}</span>
-          </div>
-          <button
-            type="button"
-            className="logout-btn"
-            onClick={handleLogout}
-            title="Sair"
-            aria-label="Sair"
-          >
-            <IconLogout size={16} />
-          </button>
-        </div>
       </div>
     </aside>
   );

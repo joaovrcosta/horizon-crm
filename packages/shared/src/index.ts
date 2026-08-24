@@ -194,6 +194,21 @@ export type EmailSignature = {
   updatedAt: string;
 };
 
+export type SentEmail = {
+  id: string;
+  userId: string;
+  userName: string;
+  prospectId: string | null;
+  prospectName: string | null;
+  toEmail: string;
+  toName: string | null;
+  subject: string;
+  body: string;
+  replyTo: string | null;
+  providerId: string | null;
+  createdAt: string;
+};
+
 export type EmailSignatureInput = {
   enabled: boolean;
   replyToEmail: string | null;

@@ -78,6 +78,7 @@ model User {
   vaults            Vault[]
   activities        ProspectActivity[]
   emailSignature    EmailSignature?
+  sentEmails        SentEmail[]
 
   @@index([roleId])
 }
@@ -118,6 +119,7 @@ model Prospect {
   createdById    String
   createdBy      User               @relation("ProspectCreator", fields: [createdById], references: [id], onDelete: Cascade)
   activities     ProspectActivity[]
+  sentEmails     SentEmail[]
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 
@@ -154,6 +156,26 @@ model ProspectActivity {
   @@index([prospectId])
   @@index([userId])
   @@index([createdAt])
+}
+
+model SentEmail {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prospectId String?
+  prospect   Prospect? @relation(fields: [prospectId], references: [id], onDelete: SetNull)
+  toEmail    String
+  toName     String?
+  subject    String
+  body       String
+  replyTo    String?
+  providerId String?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([prospectId])
+  @@index([createdAt])
+  @@index([toEmail])
 }
 
 model Prompt {

@@ -11,6 +11,7 @@ import { SettingsSkeleton } from "./settings";
 
 function pageSkeletonForPath(pathname: string) {
   if (pathname.startsWith("/prospects")) return <ProspectsSkeleton />;
+  if (pathname.startsWith("/mail")) return <DashboardSkeleton />;
   if (pathname.startsWith("/pipeline")) return <PipelineSkeleton />;
   if (pathname.startsWith("/prompts")) return <PromptsSkeleton />;
   if (pathname.startsWith("/users")) return <UsersSkeleton />;

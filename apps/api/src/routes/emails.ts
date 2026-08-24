@@ -143,6 +143,19 @@ router.post("/", async (req, res, next) => {
       include: { user: { select: { name: true } } },
     });
 
+    await prisma.sentEmail.create({
+      data: {
+        userId,
+        prospectId,
+        toEmail: prospect.email.trim().toLowerCase(),
+        toName: prospect.name,
+        subject: body.subject.trim(),
+        body: body.body.trim(),
+        replyTo: sent.replyTo,
+        providerId: sent?.id ?? null,
+      },
+    });
+
     if (prospect.status === "NEW") {
       await prisma.prospect.update({
         where: { id: prospectId },

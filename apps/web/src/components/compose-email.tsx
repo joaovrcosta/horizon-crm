@@ -410,7 +410,13 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
               ) : null}
             </div>
 
-            {signature ? (
+            {!loadingPrompts && signature && !signature.id ? (
+              <a href="/settings" className="compose-signature-alert">
+                Você ainda não tem assinatura. Cadastrar assinatura
+              </a>
+            ) : null}
+
+            {signature?.id ? (
               <label className="compose-signature-toggle">
                 <input
                   type="checkbox"
