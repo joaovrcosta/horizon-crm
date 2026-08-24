@@ -139,7 +139,7 @@ router.get("/", async (req, res, next) => {
       .object({
         status: statusEnum.optional(),
         q: z.string().optional(),
-        assigneeId: z.string().cuid().optional(),
+        assigneeId: z.union([z.string().cuid(), z.literal("none")]).optional(),
         due: dueEnum.optional(),
         country: z.string().optional(),
         category: z.string().optional(),
@@ -186,7 +186,11 @@ router.get("/", async (req, res, next) => {
     const prospects = await prisma.prospect.findMany({
       where: {
         ...(query.status ? { status: query.status as ProspectStatus } : {}),
-        ...(query.assigneeId ? { assigneeId: query.assigneeId } : {}),
+        ...(query.assigneeId === "none"
+          ? { assigneeId: null }
+          : query.assigneeId
+            ? { assigneeId: query.assigneeId }
+            : {}),
         ...(countryCode
           ? {
               country: {

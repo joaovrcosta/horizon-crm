@@ -153,12 +153,14 @@ export default function ProspectsPage() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [dueFilter, setDueFilter] = useState("");
+  const [assigneeFilter, setAssigneeFilter] = useState("");
   const [countryFilter, setCountryFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [languageFilter, setLanguageFilter] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [listTab, setListTab] = useState<ProspectStatus>("NEW");
+  const [listTab, setListTab] = useState<ProspectStatus | "FILTER">("NEW");
   const filtersRef = useRef<HTMLDivElement>(null);
+  const hadFiltersRef = useRef(false);
   const [loading, setLoading] = useState(true);
   const [formError, setFormError] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -221,6 +223,7 @@ export default function ProspectsPage() {
       if (query.trim()) params.set("q", query.trim());
       if (statusFilter) params.set("status", statusFilter);
       if (dueFilter) params.set("due", dueFilter);
+      if (assigneeFilter) params.set("assigneeId", assigneeFilter);
       if (countryFilter) params.set("country", countryFilter);
       if (categoryFilter) params.set("category", categoryFilter);
       if (languageFilter) params.set("language", languageFilter);
@@ -247,7 +250,7 @@ export default function ProspectsPage() {
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, dueFilter, countryFilter, categoryFilter, languageFilter]);
+  }, [statusFilter, dueFilter, assigneeFilter, countryFilter, categoryFilter, languageFilter]);
 
   useEffect(() => {
     if (!filtersOpen) return;
@@ -282,10 +285,21 @@ export default function ProspectsPage() {
   const activeFilterCount = [
     statusFilter,
     dueFilter,
+    assigneeFilter,
     countryFilter,
     categoryFilter,
     languageFilter,
   ].filter(Boolean).length;
+  const hasActiveFilters = activeFilterCount > 0;
+
+  useEffect(() => {
+    if (hasActiveFilters && !hadFiltersRef.current) {
+      setListTab("FILTER");
+    } else if (!hasActiveFilters && listTab === "FILTER") {
+      setListTab("NEW");
+    }
+    hadFiltersRef.current = hasActiveFilters;
+  }, [hasActiveFilters, listTab]);
 
   function openCreateModal() {
     setEditingId(null);
@@ -546,7 +560,10 @@ export default function ProspectsPage() {
     return counts;
   }, [prospects]);
 
-  const listed = prospects.filter((p) => p.status === listTab);
+  const listed =
+    listTab === "FILTER"
+      ? prospects
+      : prospects.filter((p) => p.status === listTab);
   const wa = selected
     ? toWhatsAppLink(selected.whatsapp || selected.phone)
     : null;
@@ -672,6 +689,21 @@ export default function ProspectsPage() {
                     </select>
                   </label>
                   <label>
+                    Responsável
+                    <select
+                      value={assigneeFilter}
+                      onChange={(e) => setAssigneeFilter(e.target.value)}
+                    >
+                      <option value="">Todos os responsáveis</option>
+                      <option value="none">Sem responsável</option>
+                      {users.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
                     País
                     <CountrySelect
                       value={countryFilter}
@@ -709,6 +741,7 @@ export default function ProspectsPage() {
                       onClick={() => {
                         setStatusFilter("");
                         setDueFilter("");
+                        setAssigneeFilter("");
                         setCountryFilter("");
                         setCategoryFilter("");
                         setLanguageFilter("");
@@ -734,6 +767,20 @@ export default function ProspectsPage() {
         </div>
 
         <div className="list-pane-tabs" role="tablist" aria-label="Lista de clientes">
+          {hasActiveFilters ? (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={listTab === "FILTER"}
+              className={`list-pane-tab tab-filter${
+                listTab === "FILTER" ? " active" : ""
+              }`}
+              onClick={() => setListTab("FILTER")}
+            >
+              Filtro
+              <span className="count">{prospects.length}</span>
+            </button>
+          ) : null}
           {LIST_TABS.map((tab) => (
             <button
               key={tab.value}
@@ -756,19 +803,26 @@ export default function ProspectsPage() {
 
           {!loading && listed.length > 0
             ? listed.map((p) =>
-                renderListItem(p, listTab === "WON" || listTab === "LOST"),
+                renderListItem(
+                  p,
+                  listTab === "WON" || listTab === "LOST",
+                ),
               )
             : null}
 
           {!loading && prospects.length === 0 ? (
             <p className="list-empty">
-              Nenhum cliente ainda. Adicione leads do Google Maps.
+              {hasActiveFilters
+                ? "Nenhum cliente corresponde aos filtros."
+                : "Nenhum cliente ainda. Adicione leads do Google Maps."}
             </p>
           ) : null}
 
           {!loading && prospects.length > 0 && listed.length === 0 ? (
             <p className="list-empty">
-              {LIST_TABS.find((tab) => tab.value === listTab)?.empty}
+              {listTab === "FILTER"
+                ? "Nenhum cliente corresponde aos filtros."
+                : LIST_TABS.find((tab) => tab.value === listTab)?.empty}
             </p>
           ) : null}
         </div>

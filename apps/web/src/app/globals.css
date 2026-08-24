@@ -996,6 +996,11 @@ html:not([data-theme="light"]) .sidebar {
   border-bottom-color: #34d399;
 }
 
+.list-pane-tab.active.tab-filter {
+  color: var(--brand);
+  border-bottom-color: var(--brand);
+}
+
 .list-pane-tab .count {
   font-weight: 500;
   font-size: 0.72rem;
