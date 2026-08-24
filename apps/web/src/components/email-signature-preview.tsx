@@ -26,7 +26,7 @@ export function EmailSignaturePreview({
   }, []);
 
   if (!signature.enabled) {
-    return <p className="field-hint">Assinatura desativada.</p>;
+    return <p className="field-hint">Nenhuma assinatura definida.</p>;
   }
 
   const props = toSignatureProps(signature, {
