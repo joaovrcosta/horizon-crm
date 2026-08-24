@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import type { ApiResponse, EmailSignature, SentEmail } from "@horizon/shared";
 import { DEFAULT_EMAIL_REPLY_TO } from "@horizon/shared";
@@ -96,6 +97,13 @@ const sentInclude = {
   user: { select: { name: true } },
   prospect: { select: { name: true } },
 } as const;
+
+function isMissingSentEmailTable(error: unknown) {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    (error.code === "P2021" || error.code === "P2022")
+  );
+}
 
 function parseLegacyEmailActivity(content: string): {
   toEmail: string | null;
@@ -227,6 +235,11 @@ router.get("/", async (req, res, next) => {
   } catch (error) {
     if (error instanceof z.ZodError) {
       next(new AppError(400, error.issues[0]?.message ?? "Parâmetros inválidos"));
+      return;
+    }
+    if (isMissingSentEmailTable(error)) {
+      console.error("Tabela SentEmail ausente. Rode prisma migrate deploy.");
+      res.json({ data: [] } satisfies ApiResponse<SentEmail[]>);
       return;
     }
     next(error);
