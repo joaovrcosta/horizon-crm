@@ -5,7 +5,7 @@ import { PROSPECT_STATUSES, STATUS_LABELS } from "@horizon/shared";
 
 export const STATUS_COLORS: Record<ProspectStatus, string> = {
   NEW: "#6366f1",
-  CONTACTED: "#38bdf8",
+  CONTACTED: "#34d399",
   NEGOTIATING: "#a78bfa",
   WON: "#34d399",
   LOST: "#fb7185",

@@ -49,7 +49,7 @@
 
   --sidebar-width: 232px;
   --sidebar-collapsed-width: 68px;
-  --list-width: 340px;
+  --list-width: 440px;
 
   --bg-dark: var(--navy);
   --bg-panel: var(--bg-page);
@@ -803,6 +803,96 @@ textarea {
   flex-direction: column;
   gap: 0;
   border-top: 1px solid var(--border);
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--text-subtle) 50%, transparent) transparent;
+}
+
+.list-items::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.list-items::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.list-items::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-subtle) 45%, transparent);
+  border-radius: 999px;
+}
+
+.list-items::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--text-subtle) 70%, transparent);
+}
+
+.list-items::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.list-items::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.list-pane-tabs {
+  display: flex;
+  gap: 0;
+  padding: 0 var(--space-3);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.list-pane-tabs::-webkit-scrollbar {
+  display: none;
+  height: 0;
+  width: 0;
+}
+
+.list-pane-tab {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0.65rem 0.55rem;
+  margin-bottom: -1px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.74rem;
+  color: var(--text-subtle);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.list-pane-tab:hover {
+  color: var(--text);
+}
+
+.list-pane-tab.active {
+  color: var(--text);
+  border-bottom-color: var(--brand);
+}
+
+.list-pane-tab.active.tab-contacted {
+  color: #6ee7b7;
+  border-bottom-color: #34d399;
+}
+
+.list-pane-tab .count {
+  font-weight: 500;
+  font-size: 0.72rem;
+  color: var(--text-subtle);
+}
+
+.list-pane-tab.active.tab-contacted .count {
+  color: #6ee7b7;
 }
 
 .list-section-label {
@@ -868,6 +958,20 @@ button.list-section-label .chevron-open {
   display: grid;
   gap: 0.2rem;
   transition: background var(--motion);
+}
+
+.list-item.is-contacted {
+  box-shadow: inset 3px 0 0 #34d399;
+  background: color-mix(in srgb, #34d399 6%, transparent);
+}
+
+.list-item.is-contacted:hover {
+  background: color-mix(in srgb, #34d399 12%, var(--surface-2));
+}
+
+.list-item.is-contacted.selected {
+  background: color-mix(in srgb, #34d399 14%, var(--surface-2));
+  box-shadow: inset 3px 0 0 #34d399;
 }
 
 .list-item-flag {
@@ -1980,8 +2084,8 @@ label .country-select {
   color: #c4c0ff;
 }
 .status-CONTACTED {
-  background: rgba(251, 191, 36, 0.18);
-  color: #fbbf24;
+  background: rgba(52, 211, 153, 0.18);
+  color: #6ee7b7;
 }
 .status-NEGOTIATING {
   background: rgba(34, 211, 238, 0.16);
@@ -3225,6 +3329,26 @@ html[data-theme="light"] .list-item.selected {
   color: var(--text);
 }
 
+html[data-theme="light"] .list-item.is-contacted {
+  background: color-mix(in srgb, #0e7a55 6%, transparent);
+  box-shadow: inset 3px 0 0 #0e7a55;
+}
+
+html[data-theme="light"] .list-item.is-contacted:hover,
+html[data-theme="light"] .list-item.is-contacted.selected {
+  background: color-mix(in srgb, #0e7a55 10%, #e8f0fe);
+  box-shadow: inset 3px 0 0 #0e7a55;
+}
+
+html[data-theme="light"] .list-pane-tab.active.tab-contacted {
+  color: #0e7a55;
+  border-bottom-color: #0e7a55;
+}
+
+html[data-theme="light"] .list-pane-tab.active.tab-contacted .count {
+  color: #0e7a55;
+}
+
 html[data-theme="light"] .tag {
   background: #eef0ff;
   color: #3c348d;
@@ -3261,8 +3385,8 @@ html[data-theme="light"] .status-NEW {
 }
 
 html[data-theme="light"] .status-CONTACTED {
-  background: #fff6e5;
-  color: #9a6700;
+  background: #e6f9f1;
+  color: #0e7a55;
 }
 
 html[data-theme="light"] .status-NEGOTIATING {

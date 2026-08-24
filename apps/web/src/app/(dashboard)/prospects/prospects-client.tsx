@@ -118,6 +118,28 @@ const ACTIVITY_LABEL: Record<ActivityType, string> = {
   OTHER: "Outro",
 };
 
+const LIST_TABS: Array<{
+  value: ProspectStatus;
+  label: string;
+  empty: string;
+  className?: string;
+}> = [
+  { value: "NEW", label: "Novos", empty: "Nenhum cliente novo." },
+  {
+    value: "CONTACTED",
+    label: "Contactados",
+    empty: "Nenhum cliente contactado.",
+    className: "tab-contacted",
+  },
+  {
+    value: "NEGOTIATING",
+    label: "Negociando",
+    empty: "Nenhum cliente em negociação.",
+  },
+  { value: "WON", label: "Ganhos", empty: "Nenhum cliente ganho." },
+  { value: "LOST", label: "Perdidos", empty: "Nenhum cliente perdido." },
+];
+
 export default function ProspectsPage() {
   const { user } = useAuth();
   const toast = useToast();
@@ -134,7 +156,7 @@ export default function ProspectsPage() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [languageFilter, setLanguageFilter] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [closedOpen, setClosedOpen] = useState(false);
+  const [listTab, setListTab] = useState<ProspectStatus>("NEW");
   const filtersRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [formError, setFormError] = useState("");
@@ -348,6 +370,9 @@ export default function ProspectsPage() {
       setProspects((prev) =>
         prev.map((p) => (p.id === updated.id ? updated : p)),
       );
+      if (typeof patch.status === "string") {
+        setListTab(patch.status as ProspectStatus);
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao atualizar");
     }
@@ -471,6 +496,7 @@ export default function ProspectsPage() {
             p.id === selected.id ? { ...p, status: "CONTACTED" } : p,
           ),
         );
+        setListTab("CONTACTED");
       }
       setShowEmailModal(false);
       toast.success(`E-mail enviado. Respostas vão para ${result.replyTo ?? "hello@halk.solutions"}.`);
@@ -507,18 +533,70 @@ export default function ProspectsPage() {
     }
   }
 
-  const active = prospects.filter(
-    (p) => p.status !== "LOST" && p.status !== "WON",
-  );
-  const closed = prospects.filter(
-    (p) => p.status === "LOST" || p.status === "WON",
-  );
+  const tabCounts = useMemo(() => {
+    const counts = Object.fromEntries(
+      PROSPECT_STATUSES.map((status) => [status, 0]),
+    ) as Record<ProspectStatus, number>;
+    for (const p of prospects) {
+      counts[p.status] += 1;
+    }
+    return counts;
+  }, [prospects]);
+
+  const listed = prospects.filter((p) => p.status === listTab);
   const wa = selected
     ? toWhatsAppLink(selected.whatsapp || selected.phone)
     : null;
   const tel = selected
     ? toTelLink(selected.phone || selected.whatsapp)
     : null;
+
+  function renderListItem(p: Prospect, compact = false) {
+    return (
+      <button
+        key={p.id}
+        type="button"
+        className={`list-item${selectedId === p.id ? " selected" : ""}${
+          p.status === "CONTACTED" ? " is-contacted" : ""
+        }`}
+        onClick={() => {
+          setSelectedId(p.id);
+          setMobileDetailOpen(true);
+        }}
+      >
+        {p.country ? (
+          <CountryFlag code={p.country} className="list-item-flag" />
+        ) : null}
+        <strong>{p.name}</strong>
+        <span>
+          {compact
+            ? p.address || "—"
+            : p.address || p.phone || p.email || "Sem contato"}
+        </span>
+        {!compact ? (
+          <div className="meta">
+            <span className={`status-pill status-${p.status}`}>
+              {STATUS_LABELS[p.status]}
+            </span>
+            {p.category ? (
+              <span className="tag-chip tag-chip-category">{p.category}</span>
+            ) : null}
+            {(p.languages ?? []).slice(0, 2).map((language) => (
+              <span key={language} className="tag-chip tag-chip-language">
+                {language}
+              </span>
+            ))}
+            {isOverdue(p.nextContactAt, p.status) ? (
+              <span className="status-pill status-overdue">Atrasado</span>
+            ) : null}
+            <span className="meta-assignee">
+              {p.assigneeName || "Sem responsável"}
+            </span>
+          </div>
+        ) : null}
+      </button>
+    );
+  }
 
   return (
     <div
@@ -652,98 +730,42 @@ export default function ProspectsPage() {
           </div>
         </div>
 
+        <div className="list-pane-tabs" role="tablist" aria-label="Lista de clientes">
+          {LIST_TABS.map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              role="tab"
+              aria-selected={listTab === tab.value}
+              className={`list-pane-tab${tab.className ? ` ${tab.className}` : ""}${
+                listTab === tab.value ? " active" : ""
+              }`}
+              onClick={() => setListTab(tab.value)}
+            >
+              {tab.label}
+              <span className="count">{tabCounts[tab.value]}</span>
+            </button>
+          ))}
+        </div>
+
         <div className="list-items">
           {loading ? <ProspectsListSkeleton /> : null}
 
-          {!loading && active.length > 0 ? (
-            <>
-              <div className="list-section-label">
-                Ativos <span className="count">{active.length}</span>
-              </div>
-              {active.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  className={`list-item${selectedId === p.id ? " selected" : ""}`}
-                  onClick={() => {
-                    setSelectedId(p.id);
-                    setMobileDetailOpen(true);
-                  }}
-                >
-                  {p.country ? (
-                    <CountryFlag code={p.country} className="list-item-flag" />
-                  ) : null}
-                  <strong>{p.name}</strong>
-                  <span>{p.address || p.phone || p.email || "Sem contato"}</span>
-                  <div className="meta">
-                    <span className={`status-pill status-${p.status}`}>
-                      {STATUS_LABELS[p.status]}
-                    </span>
-                    {p.category ? (
-                      <span className="tag-chip tag-chip-category">{p.category}</span>
-                    ) : null}
-                    {(p.languages ?? []).slice(0, 2).map((language) => (
-                      <span
-                        key={language}
-                        className="tag-chip tag-chip-language"
-                      >
-                        {language}
-                      </span>
-                    ))}
-                    {isOverdue(p.nextContactAt, p.status) ? (
-                      <span className="status-pill status-overdue">Atrasado</span>
-                    ) : null}
-                    <span className="meta-assignee">
-                      {p.assigneeName || "Sem responsável"}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </>
-          ) : null}
-
-          {!loading && closed.length > 0 ? (
-            <>
-              <button
-                type="button"
-                className="list-section-label"
-                aria-expanded={closedOpen}
-                onClick={() => setClosedOpen((open) => !open)}
-              >
-                Encerrados <span className="count">{closed.length}</span>
-                <IconChevronDown
-                  size={12}
-                  className={closedOpen ? "chevron-open" : undefined}
-                />
-              </button>
-              {closedOpen
-                ? closed.map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      className={`list-item${selectedId === p.id ? " selected" : ""}`}
-                      onClick={() => {
-                        setSelectedId(p.id);
-                        setMobileDetailOpen(true);
-                      }}
-                    >
-                      {p.country ? (
-                        <CountryFlag
-                          code={p.country}
-                          className="list-item-flag"
-                        />
-                      ) : null}
-                      <strong>{p.name}</strong>
-                      <span>{p.address || "—"}</span>
-                    </button>
-                  ))
-                : null}
-            </>
-          ) : null}
+          {!loading && listed.length > 0
+            ? listed.map((p) =>
+                renderListItem(p, listTab === "WON" || listTab === "LOST"),
+              )
+            : null}
 
           {!loading && prospects.length === 0 ? (
             <p className="list-empty">
               Nenhum cliente ainda. Adicione leads do Google Maps.
+            </p>
+          ) : null}
+
+          {!loading && prospects.length > 0 && listed.length === 0 ? (
+            <p className="list-empty">
+              {LIST_TABS.find((tab) => tab.value === listTab)?.empty}
             </p>
           ) : null}
         </div>
