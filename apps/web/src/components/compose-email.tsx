@@ -10,6 +10,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { Controller, useForm, type FieldErrors } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import type { EmailSignature, Prompt, Prospect } from "@horizon/shared";
 import { useAuth } from "@/components/auth-provider";
 import {
@@ -31,6 +33,10 @@ import {
   buildPlainSignature,
   copyHtmlToClipboard,
 } from "@/lib/email-signature";
+import {
+  composeEmailSchema,
+  type ComposeEmailValues,
+} from "@/lib/compose-email-schema";
 import { applyPromptTemplate } from "@/lib/prospect-utils";
 
 type ComposeContextValue = {
@@ -60,14 +66,11 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
-  const [toEmail, setToEmail] = useState("");
   const [toName, setToName] = useState("");
   const [toQuery, setToQuery] = useState("");
   const [suggestions, setSuggestions] = useState<RecipientSuggestion[]>([]);
   const [searchingRecipients, setSearchingRecipients] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [subject, setSubject] = useState("");
-  const [body, setBody] = useState("");
   const [fontFamily, setFontFamily] = useState<string>(DEFAULT_EMAIL_FONT);
   const [promptId, setPromptId] = useState("");
   const [prompts, setPrompts] = useState<Prompt[]>([]);
@@ -79,6 +82,23 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
   const searchSeq = useRef(0);
   const toFieldRef = useRef<HTMLDivElement>(null);
   const bodyEditorRef = useRef<EmailBodyEditorHandle>(null);
+  const {
+    register,
+    control,
+    handleSubmit,
+    reset,
+    setValue,
+    getValues,
+    watch,
+    setFocus,
+    formState: { errors },
+  } = useForm<ComposeEmailValues>({
+    resolver: zodResolver(composeEmailSchema),
+    defaultValues: { to: "", subject: "", body: "" },
+    mode: "onSubmit",
+  });
+  const subject = watch("subject");
+  const toEmail = watch("to");
 
   const close = useCallback(() => {
     setOpen(false);
@@ -87,22 +107,24 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
     setSuggestions([]);
     setShowSuggestions(false);
     setSearchingRecipients(false);
-  }, []);
+    reset({ to: "", subject: "", body: "" });
+  }, [reset]);
 
-  const openCompose = useCallback((opts?: { to?: string; name?: string }) => {
-    setToEmail(opts?.to ?? "");
-    setToName(opts?.name ?? "");
-    setToQuery(opts?.to ?? opts?.name ?? "");
-    setSuggestions([]);
-    setShowSuggestions(false);
-    setSubject("");
-    setBody("");
-    setFontFamily(DEFAULT_EMAIL_FONT);
-    setPromptId("");
-    setHint("");
-    setMinimized(false);
-    setOpen(true);
-  }, []);
+  const openCompose = useCallback(
+    (opts?: { to?: string; name?: string }) => {
+      setToName(opts?.name ?? "");
+      setToQuery(opts?.to ?? opts?.name ?? "");
+      setSuggestions([]);
+      setShowSuggestions(false);
+      reset({ to: opts?.to ?? "", subject: "", body: "" });
+      setFontFamily(DEFAULT_EMAIL_FONT);
+      setPromptId("");
+      setHint("");
+      setMinimized(false);
+      setOpen(true);
+    },
+    [reset],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -120,8 +142,12 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
         setPrompts(promptList);
         setSignature(sig);
         setIncludeSignature(sig.enabled);
-        if (sig?.defaultIntro?.trim() && !htmlToPlainText(body)) {
-          setBody(
+        if (
+          sig?.defaultIntro?.trim() &&
+          !htmlToPlainText(getValues("body"))
+        ) {
+          setValue(
+            "body",
             plainTextToEditorHtml(
               applyPromptTemplate(sig.defaultIntro, {
                 name: toName,
@@ -207,7 +233,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
   }, [showSuggestions]);
 
   function selectRecipient(recipient: RecipientSuggestion) {
-    setToEmail(recipient.email);
+    setValue("to", recipient.email, { shouldValidate: Boolean(errors.to) });
     setToName(recipient.name);
     setToQuery(recipient.email);
     setSuggestions([]);
@@ -217,7 +243,9 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
   function onToQueryChange(value: string) {
     setToQuery(value);
     setShowSuggestions(true);
-    setToEmail(value.includes("@") ? value.trim() : "");
+    setValue("to", value.includes("@") ? value.trim() : "", {
+      shouldValidate: Boolean(errors.to),
+    });
     if (!value.includes("@")) setToName("");
   }
 
@@ -226,7 +254,8 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
     if (!id) return;
     const prompt = prompts.find((p) => p.id === id);
     if (!prompt) return;
-    setBody(
+    setValue(
+      "body",
       plainTextToEditorHtml(
         applyPromptTemplate(prompt.content, {
           name: toName,
@@ -235,7 +264,6 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
         }),
       ),
     );
-    if (!subject.trim()) setSubject(prompt.title);
   }
 
   async function copySignatureOnly() {
@@ -261,17 +289,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function send() {
-    const recipient = (toEmail || toQuery).trim();
-    const plainBody = htmlToPlainText(body);
-    if (!recipient || !subject.trim() || !plainBody) {
-      setHint("Preencha destinatário, assunto e corpo.");
-      return;
-    }
-    if (!recipient.includes("@")) {
-      setHint("Informe um e-mail válido ou selecione um cliente.");
-      return;
-    }
+  async function sendEmail(data: ComposeEmailValues) {
     setSending(true);
     setHint("");
     try {
@@ -281,9 +299,9 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
       }>("/emails", {
         method: "POST",
         body: {
-          to: recipient,
-          subject: subject.trim(),
-          body: body.trim(),
+          to: data.to,
+          subject: data.subject,
+          body: data.body.trim(),
           fontFamily,
           includeSignature: includeSignature && Boolean(signature?.enabled),
         },
@@ -299,6 +317,19 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
       toast.error(message);
     } finally {
       setSending(false);
+    }
+  }
+
+  function onInvalidSend(formErrors: FieldErrors<ComposeEmailValues>) {
+    const message =
+      formErrors.subject?.message ||
+      formErrors.to?.message ||
+      formErrors.body?.message ||
+      "Preencha os campos obrigatórios.";
+    setHint(message);
+    toast.error(message);
+    if (formErrors.subject) {
+      setFocus("subject");
     }
   }
 
@@ -404,9 +435,8 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
               <span className="compose-label">Assunto</span>
               <input
                 className="compose-input"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
                 placeholder="Assunto"
+                {...register("subject")}
               />
             </div>
 
@@ -433,12 +463,18 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
             </div>
 
             <div className="compose-body-wrap">
-              <EmailBodyEditor
-                ref={bodyEditorRef}
-                value={body}
-                onChange={setBody}
-                fontFamily={fontFamily}
-                placeholder="Escreva sua mensagem…"
+              <Controller
+                name="body"
+                control={control}
+                render={({ field }) => (
+                  <EmailBodyEditor
+                    ref={bodyEditorRef}
+                    value={field.value}
+                    onChange={field.onChange}
+                    fontFamily={fontFamily}
+                    placeholder="Escreva sua mensagem…"
+                  />
+                )}
               />
               {signature && includeSignature && signature.enabled ? (
                 <div className="compose-signature">
@@ -487,7 +523,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
                 type="button"
                 className="compose-send"
                 disabled={sending}
-                onClick={() => void send()}
+                onClick={() => void handleSubmit(sendEmail, onInvalidSend)()}
               >
                 {sending ? "Enviando…" : "Enviar"}
               </button>

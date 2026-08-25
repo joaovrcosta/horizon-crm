@@ -1,6 +1,8 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { Controller, useForm, type FieldErrors } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useSearchParams } from "next/navigation";
 import type {
   ActivityType,
@@ -41,6 +43,10 @@ import {
   toTelLink,
   toWhatsAppLink,
 } from "@/lib/prospect-utils";
+import {
+  composeEmailSchema,
+  type ComposeEmailValues,
+} from "@/lib/compose-email-schema";
 import {
   IconChevronDown,
   IconChevronLeft,
@@ -192,8 +198,21 @@ export default function ProspectsPage() {
   const [emailMinimized, setEmailMinimized] = useState(false);
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [emailPromptId, setEmailPromptId] = useState("");
-  const [emailSubject, setEmailSubject] = useState("");
-  const [emailBody, setEmailBody] = useState("");
+  const {
+    register: registerEmail,
+    control: emailControl,
+    handleSubmit: handleEmailSubmit,
+    reset: resetEmail,
+    setValue: setEmailValue,
+    getValues: getEmailValues,
+    watch: watchEmail,
+    setFocus: setEmailFocus,
+  } = useForm<ComposeEmailValues>({
+    resolver: zodResolver(composeEmailSchema),
+    defaultValues: { to: "", subject: "", body: "" },
+    mode: "onSubmit",
+  });
+  const emailSubject = watchEmail("subject");
   const [emailFontFamily, setEmailFontFamily] = useState<string>(DEFAULT_EMAIL_FONT);
   const [loadingPrompts, setLoadingPrompts] = useState(false);
   const [openingEmail, setOpeningEmail] = useState(false);
@@ -444,8 +463,7 @@ export default function ProspectsPage() {
   async function openEmailModal() {
     if (!selected?.email) return;
     setEmailPromptId("");
-    setEmailSubject(`Contato — ${selected.name}`);
-    setEmailBody("");
+    resetEmail({ to: selected.email, subject: "", body: "" });
     setEmailFontFamily(DEFAULT_EMAIL_FONT);
     setEmailClipboardHint("");
     setEmailMinimized(false);
@@ -460,8 +478,12 @@ export default function ProspectsPage() {
       setEmailSignature(signature);
       setIncludeSignature(signature.enabled);
 
-      if (signature?.defaultIntro?.trim()) {
-        setEmailBody(
+      if (
+        signature?.defaultIntro?.trim() &&
+        !htmlToPlainText(getEmailValues("body"))
+      ) {
+        setEmailValue(
+          "body",
           plainTextToEditorHtml(
             applyPromptTemplate(signature.defaultIntro, {
               name: selected.name,
@@ -485,7 +507,8 @@ export default function ProspectsPage() {
     if (!promptId || !selected) return;
     const prompt = prompts.find((p) => p.id === promptId);
     if (!prompt) return;
-    setEmailBody(
+    setEmailValue(
+      "body",
       plainTextToEditorHtml(
         applyPromptTemplate(prompt.content, {
           name: selected.name,
@@ -498,17 +521,10 @@ export default function ProspectsPage() {
         }),
       ),
     );
-    if (!emailSubject.trim()) {
-      setEmailSubject(prompt.title);
-    }
   }
 
-  async function sendEmailViaResend() {
+  async function sendEmailViaResend(data: ComposeEmailValues) {
     if (!selected?.email) return;
-    if (!emailSubject.trim() || !htmlToPlainText(emailBody)) {
-      setEmailClipboardHint("Preencha assunto e corpo antes de enviar.");
-      return;
-    }
     setOpeningEmail(true);
     setEmailClipboardHint("");
     try {
@@ -520,8 +536,8 @@ export default function ProspectsPage() {
       }>(`/prospects/${selected.id}/emails`, {
         method: "POST",
         body: {
-          subject: emailSubject.trim(),
-          body: emailBody.trim(),
+          subject: data.subject,
+          body: data.body.trim(),
           fontFamily: emailFontFamily,
           includeSignature: includeSignature && Boolean(emailSignature?.enabled),
         },
@@ -545,6 +561,19 @@ export default function ProspectsPage() {
       toast.error(message);
     } finally {
       setOpeningEmail(false);
+    }
+  }
+
+  function onInvalidEmailSend(formErrors: FieldErrors<ComposeEmailValues>) {
+    const message =
+      formErrors.subject?.message ||
+      formErrors.body?.message ||
+      formErrors.to?.message ||
+      "Preencha os campos obrigatórios.";
+    setEmailClipboardHint(message);
+    toast.error(message);
+    if (formErrors.subject) {
+      setEmailFocus("subject");
     }
   }
 
@@ -1492,9 +1521,8 @@ export default function ProspectsPage() {
               <span className="compose-label">Assunto</span>
               <input
                 className="compose-input"
-                value={emailSubject}
-                onChange={(e) => setEmailSubject(e.target.value)}
                 placeholder="Assunto"
+                {...registerEmail("subject")}
               />
             </div>
 
@@ -1521,12 +1549,18 @@ export default function ProspectsPage() {
             </div>
 
             <div className="compose-body-wrap">
-              <EmailBodyEditor
-                ref={emailBodyEditorRef}
-                value={emailBody}
-                onChange={setEmailBody}
-                fontFamily={emailFontFamily}
-                placeholder="Escreva sua mensagem…"
+              <Controller
+                name="body"
+                control={emailControl}
+                render={({ field }) => (
+                  <EmailBodyEditor
+                    ref={emailBodyEditorRef}
+                    value={field.value}
+                    onChange={field.onChange}
+                    fontFamily={emailFontFamily}
+                    placeholder="Escreva sua mensagem…"
+                  />
+                )}
               />
               {emailSignature && includeSignature && emailSignature.enabled ? (
                 <div className="compose-signature">
@@ -1576,7 +1610,9 @@ export default function ProspectsPage() {
                 type="button"
                 className="compose-send"
                 disabled={openingEmail}
-                onClick={() => void sendEmailViaResend()}
+                onClick={() =>
+                  void handleEmailSubmit(sendEmailViaResend, onInvalidEmailSend)()
+                }
               >
                 {openingEmail ? "Enviando…" : "Enviar"}
               </button>
