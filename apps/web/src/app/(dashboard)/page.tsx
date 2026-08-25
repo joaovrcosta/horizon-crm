@@ -21,6 +21,11 @@ import { DashboardSkeleton } from "@/components/skeleton";
 import { StatusChart } from "@/components/status-chart";
 import { useCountUp } from "@/hooks/use-count-up";
 
+function formatSigned(value: number) {
+  if (value > 0) return `+${value}`;
+  return `${value}`;
+}
+
 function CountUpValue({ value }: { value: number }) {
   const displayed = useCountUp(value);
   return <>{displayed.toLocaleString("pt-BR")}</>;
