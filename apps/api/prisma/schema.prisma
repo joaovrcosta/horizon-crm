@@ -195,6 +195,7 @@ model ReceivedEmail {
   subject     String
   body        String
   isReply     Boolean   @default(true)
+  readAt      DateTime?
   providerId  String    @unique
   createdAt   DateTime  @default(now())
 

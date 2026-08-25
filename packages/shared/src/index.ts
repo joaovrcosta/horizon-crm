@@ -211,10 +211,13 @@ export type SentEmail = {
 
 export type MailDirection = "sent" | "received";
 
+export type MailFolder = "all" | "sent" | "received";
+
 export type MailboxItem = {
   id: string;
   direction: MailDirection;
   isReply: boolean;
+  unread: boolean;
   userId: string | null;
   userName: string | null;
   prospectId: string | null;
@@ -228,6 +231,14 @@ export type MailboxItem = {
   replyTo: string | null;
   providerId: string | null;
   createdAt: string;
+};
+
+export type MailboxPage = {
+  items: MailboxItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  unreadCount: number;
 };
 
 export type EmailSignatureInput = {

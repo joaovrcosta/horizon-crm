@@ -3172,6 +3172,91 @@ html[data-theme="light"] .compose-footer {
   flex: 1;
 }
 
+.mail-folders {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.18rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.mail-folder {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.32rem 0.72rem;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.mail-folder:hover {
+  color: var(--text);
+}
+
+.mail-folder.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+.mail-unread-count {
+  font-size: 0.68rem;
+  font-weight: 750;
+  color: var(--brand);
+  min-width: 1rem;
+  text-align: center;
+}
+
+.mail-pager {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mail-pager-range {
+  padding: 0 0.45rem;
+  letter-spacing: 0.01em;
+}
+
+.mail-pager-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.mail-pager-btn:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.mail-pager-btn:disabled {
+  color: var(--text-subtle);
+  opacity: 0.4;
+  cursor: default;
+}
+
 .mail-search {
   position: relative;
   flex: 1;
@@ -3280,9 +3365,18 @@ html[data-theme="light"] .compose-footer {
   background: color-mix(in srgb, var(--brand) 18%, var(--surface));
 }
 
-.mail-tr.mail-tr-reply .mail-col-to,
-.mail-tr.mail-tr-reply .mail-subject {
+.mail-tr-unread .mail-col-to,
+.mail-tr-unread .mail-subject {
   font-weight: 750;
+  color: var(--text);
+}
+
+.mail-tr:not(.mail-tr-unread) .mail-col-to {
+  font-weight: 500;
+}
+
+.mail-tr:not(.mail-tr-unread) .mail-subject {
+  font-weight: 500;
 }
 
 .mail-reply-badge {
@@ -3528,6 +3622,20 @@ html[data-theme="light"] .compose-footer {
   font-style: italic;
 }
 
+.mail-reading-body .email-quote,
+.mail-reading-body blockquote {
+  color: var(--text-muted);
+  border-left: 2px solid var(--border);
+  padding-left: 0.9rem;
+  margin: 1.1rem 0 0;
+  font-size: 0.9em;
+}
+
+.mail-reading-body .email-quote a,
+.mail-reading-body blockquote a {
+  color: color-mix(in srgb, var(--brand) 70%, var(--text-muted));
+}
+
 @media (max-width: 900px) {
   .mail-toolbar {
     flex-wrap: wrap;
@@ -3537,6 +3645,11 @@ html[data-theme="light"] .compose-footer {
     order: 3;
     max-width: none;
     width: 100%;
+  }
+
+  .mail-folders,
+  .mail-pager {
+    order: 4;
   }
 
   .mail-table-head,

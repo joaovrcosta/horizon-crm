@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import type { MailboxItem } from "@horizon/shared";
+import type { MailFolder, MailboxItem, MailboxPage } from "@horizon/shared";
 import { useComposeEmail } from "@/components/compose-email";
 import {
   IconChevronLeft,
+  IconChevronRight,
   IconEdit,
   IconMail,
   IconSearch,
@@ -14,6 +15,8 @@ import {
 import { apiFetch } from "@/lib/api-client";
 import { htmlToPlainText, prepareEmailMessageHtml } from "@/lib/email-body";
 import { formatDateTime } from "@/lib/prospect-utils";
+
+const PAGE_SIZE = 50;
 
 function snippet(text: string, max = 120) {
   const clean = htmlToPlainText(text).replace(/\s+/g, " ").trim();
@@ -43,6 +46,13 @@ function formatListDate(iso: string) {
   });
 }
 
+function formatPager(page: number, pageSize: number, total: number) {
+  if (total === 0) return "0–0 de 0";
+  const start = (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, total);
+  return `${start}–${end} de ${total.toLocaleString("pt-BR")}`;
+}
+
 function contactLabel(email: MailboxItem) {
   if (email.direction === "received") {
     return email.fromName?.trim() || email.prospectName?.trim() || email.fromEmail;
@@ -54,9 +64,19 @@ function contactEmail(email: MailboxItem) {
   return email.direction === "received" ? email.fromEmail : email.toEmail;
 }
 
+const FOLDERS: { id: MailFolder; label: string }[] = [
+  { id: "all", label: "Todos" },
+  { id: "received", label: "Recebidos" },
+  { id: "sent", label: "Enviados" },
+];
+
 export default function MailPage() {
   const { open: openCompose } = useComposeEmail();
   const [emails, setEmails] = useState<MailboxItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [page, setPage] = useState(1);
+  const [folder, setFolder] = useState<MailFolder>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
@@ -68,19 +88,27 @@ export default function MailPage() {
     setLoading(true);
     setError("");
     try {
-      const path = appliedQuery.trim()
-        ? `/emails?q=${encodeURIComponent(appliedQuery.trim())}`
-        : "/emails";
-      const data = await apiFetch<MailboxItem[]>(path);
-      setEmails(data);
+      const params = new URLSearchParams({
+        folder,
+        page: String(page),
+        pageSize: String(PAGE_SIZE),
+      });
+      if (appliedQuery.trim()) params.set("q", appliedQuery.trim());
+      const data = await apiFetch<MailboxPage>(`/emails?${params.toString()}`);
+      setEmails(data.items);
+      setTotal(data.total);
+      setUnreadCount(data.unreadCount);
       setSelectedIds(new Set());
+      const maxPage = Math.max(1, Math.ceil(data.total / PAGE_SIZE) || 1);
+      if (page > maxPage) setPage(maxPage);
     } catch (err) {
       setEmails([]);
+      setTotal(0);
       setError(err instanceof Error ? err.message : "Erro ao carregar e-mails");
     } finally {
       setLoading(false);
     }
-  }, [appliedQuery]);
+  }, [appliedQuery, folder, page]);
 
   useEffect(() => {
     void load();
@@ -91,8 +119,18 @@ export default function MailPage() {
     [emails, selectedId],
   );
 
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const canPrev = page > 1;
+  const canNext = page < pageCount && total > 0;
+
   const allSelected =
     emails.length > 0 && emails.every((item) => selectedIds.has(item.id));
+
+  function changeFolder(next: MailFolder) {
+    setFolder(next);
+    setPage(1);
+    setSelectedId(null);
+  }
 
   function toggleAll() {
     if (allSelected) {
@@ -109,6 +147,26 @@ export default function MailPage() {
       else next.add(id);
       return next;
     });
+  }
+
+  function markLocalRead(id: string) {
+    setEmails((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, unread: false } : item)),
+    );
+    setUnreadCount((prev) => Math.max(0, prev - 1));
+  }
+
+  function openEmail(item: MailboxItem) {
+    setSelectedId(item.id);
+    if (item.direction === "received" && item.unread) {
+      markLocalRead(item.id);
+      void apiFetch<{ ok: boolean }>(
+        `/emails/${encodeURIComponent(item.id)}/read`,
+        { method: "PATCH" },
+      ).catch(() => {
+        /* a lista recarrega no próximo load */
+      });
+    }
   }
 
   if (selected) {
@@ -195,14 +253,32 @@ export default function MailPage() {
     );
   }
 
+  const emptyLabel =
+    folder === "received"
+      ? "Nenhum e-mail recebido."
+      : folder === "sent"
+        ? "Nenhum e-mail enviado."
+        : "Nenhum e-mail ainda.";
+
   return (
     <div className="mail-page">
       <div className="mail-toolbar">
-        <div className="mail-toolbar-left">
-          <h1>
-            E-mails
-            <span className="count">{emails.length}</span>
-          </h1>
+        <div className="mail-folders" role="tablist" aria-label="Pastas">
+          {FOLDERS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={folder === item.id}
+              className={`mail-folder${folder === item.id ? " active" : ""}`}
+              onClick={() => changeFolder(item.id)}
+            >
+              {item.label}
+              {item.id === "received" && unreadCount > 0 ? (
+                <span className="mail-unread-count">{unreadCount}</span>
+              ) : null}
+            </button>
+          ))}
         </div>
         <div className="mail-search">
           <IconSearch size={15} />
@@ -212,9 +288,35 @@ export default function MailPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") setAppliedQuery(query);
+              if (e.key === "Enter") {
+                setPage(1);
+                setAppliedQuery(query);
+              }
             }}
           />
+        </div>
+        <div className="mail-pager">
+          <span className="mail-pager-range">
+            {formatPager(page, PAGE_SIZE, total)}
+          </span>
+          <button
+            type="button"
+            className="mail-pager-btn"
+            disabled={!canPrev || loading}
+            aria-label="Página anterior"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            <IconChevronLeft size={16} />
+          </button>
+          <button
+            type="button"
+            className="mail-pager-btn"
+            disabled={!canNext || loading}
+            aria-label="Próxima página"
+            onClick={() => setPage((p) => p + 1)}
+          >
+            <IconChevronRight size={16} />
+          </button>
         </div>
         <button
           type="button"
@@ -249,15 +351,17 @@ export default function MailPage() {
         {!loading && !error && emails.length === 0 ? (
           <div className="mail-empty">
             <IconMail size={28} />
-            <p>Nenhum e-mail ainda.</p>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => openCompose()}
-            >
-              <IconEdit size={15} />
-              Escrever e-mail
-            </button>
+            <p>{emptyLabel}</p>
+            {folder !== "received" ? (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => openCompose()}
+              >
+                <IconEdit size={15} />
+                Escrever e-mail
+              </button>
+            ) : null}
           </div>
         ) : null}
 
@@ -270,8 +374,8 @@ export default function MailPage() {
                 <div
                   key={item.id}
                   role="listitem"
-                  className={`mail-tr${checked ? " checked" : ""}${isReply ? " mail-tr-reply" : ""}`}
-                  onClick={() => setSelectedId(item.id)}
+                  className={`mail-tr${checked ? " checked" : ""}${isReply ? " mail-tr-reply" : ""}${item.unread ? " mail-tr-unread" : ""}`}
+                  onClick={() => openEmail(item)}
                 >
                   <label
                     className="mail-check"

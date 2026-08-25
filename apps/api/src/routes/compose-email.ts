@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
-import type { ApiResponse, EmailSignature, MailboxItem, SentEmail } from "@horizon/shared";
+import type { ApiResponse, EmailSignature, MailboxItem, MailboxPage, SentEmail } from "@horizon/shared";
 import { DEFAULT_EMAIL_REPLY_TO } from "@horizon/shared";
 import { AppError } from "../lib/errors";
 import { prisma } from "../lib/prisma";
@@ -22,9 +22,19 @@ const sendSchema = z.object({
   includeSignature: z.boolean().optional().default(true),
 });
 
+const PAGE_SIZE_DEFAULT = 50;
+
 const listSchema = z.object({
   q: z.string().trim().max(200).optional(),
-  limit: z.coerce.number().int().min(1).max(200).optional().default(100),
+  folder: z.enum(["all", "sent", "received"]).optional().default("all"),
+  page: z.coerce.number().int().min(1).optional().default(1),
+  pageSize: z
+    .coerce.number()
+    .int()
+    .min(1)
+    .max(100)
+    .optional()
+    .default(PAGE_SIZE_DEFAULT),
 });
 
 function serializeSignature(row: {
@@ -132,6 +142,7 @@ function serializeMailboxFromSent(row: {
     id: mailboxId("sent", row.id),
     direction: "sent",
     isReply: false,
+    unread: false,
     userId: row.userId,
     userName: row.user.name,
     prospectId: row.prospectId,
@@ -158,6 +169,7 @@ function serializeMailboxFromReceived(row: {
   subject: string;
   body: string;
   isReply: boolean;
+  readAt: Date | null;
   providerId: string;
   createdAt: Date;
   user: { name: string } | null;
@@ -167,6 +179,7 @@ function serializeMailboxFromReceived(row: {
     id: mailboxId("received", row.id),
     direction: "received",
     isReply: row.isReply,
+    unread: !row.readAt,
     userId: row.userId,
     userName: row.user?.name ?? null,
     prospectId: row.prospectId,
@@ -323,36 +336,99 @@ router.get("/", async (req, res, next) => {
         }
       : {};
 
-    const [sentRows, receivedRows] = await Promise.all([
-      prisma.sentEmail.findMany({
-        where: sentWhere,
-        include: sentInclude,
-        orderBy: { createdAt: "desc" },
-        take: query.limit,
-      }),
+    const includeSent = query.folder !== "received";
+    const includeReceived = query.folder !== "sent";
+
+    const [sentMeta, receivedMeta, unreadCount] = await Promise.all([
+      includeSent
+        ? prisma.sentEmail.findMany({
+            where: sentWhere,
+            select: { id: true, createdAt: true },
+            orderBy: { createdAt: "desc" },
+          })
+        : Promise.resolve([]),
+      includeReceived
+        ? prisma.receivedEmail
+            .findMany({
+              where: receivedWhere,
+              select: { id: true, createdAt: true },
+              orderBy: { createdAt: "desc" },
+            })
+            .catch((error) => {
+              if (isMissingMailboxTable(error)) return [];
+              throw error;
+            })
+        : Promise.resolve([]),
       prisma.receivedEmail
-        .findMany({
-          where: receivedWhere,
-          include: receivedInclude,
-          orderBy: { createdAt: "desc" },
-          take: query.limit,
-        })
+        .count({ where: { readAt: null } })
         .catch((error) => {
-          if (isMissingMailboxTable(error)) return [];
+          if (isMissingMailboxTable(error)) return 0;
           throw error;
         }),
     ]);
 
-    const items = [
-      ...sentRows.map(serializeMailboxFromSent),
-      ...receivedRows.map(serializeMailboxFromReceived),
-    ]
-      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
-      .slice(0, query.limit);
+    const merged = [
+      ...sentMeta.map((row) => ({
+        id: row.id,
+        createdAt: row.createdAt,
+        direction: "sent" as const,
+      })),
+      ...receivedMeta.map((row) => ({
+        id: row.id,
+        createdAt: row.createdAt,
+        direction: "received" as const,
+      })),
+    ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    const total = merged.length;
+    const offset = (query.page - 1) * query.pageSize;
+    const pageSlice = merged.slice(offset, offset + query.pageSize);
+    const sentIds = pageSlice
+      .filter((item) => item.direction === "sent")
+      .map((item) => item.id);
+    const receivedIds = pageSlice
+      .filter((item) => item.direction === "received")
+      .map((item) => item.id);
+
+    const [sentRows, receivedRows] = await Promise.all([
+      sentIds.length
+        ? prisma.sentEmail.findMany({
+            where: { id: { in: sentIds } },
+            include: sentInclude,
+          })
+        : Promise.resolve([]),
+      receivedIds.length
+        ? prisma.receivedEmail.findMany({
+            where: { id: { in: receivedIds } },
+            include: receivedInclude,
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const sentById = new Map(
+      sentRows.map((row) => [row.id, serializeMailboxFromSent(row)]),
+    );
+    const receivedById = new Map(
+      receivedRows.map((row) => [row.id, serializeMailboxFromReceived(row)]),
+    );
+
+    const items = pageSlice
+      .map((item) =>
+        item.direction === "sent"
+          ? sentById.get(item.id)
+          : receivedById.get(item.id),
+      )
+      .filter((item): item is MailboxItem => Boolean(item));
 
     res.json({
-      data: items,
-    } satisfies ApiResponse<MailboxItem[]>);
+      data: {
+        items,
+        total,
+        page: query.page,
+        pageSize: query.pageSize,
+        unreadCount,
+      },
+    } satisfies ApiResponse<MailboxPage>);
   } catch (error) {
     if (error instanceof z.ZodError) {
       next(new AppError(400, error.issues[0]?.message ?? "Parâmetros inválidos"));
@@ -360,7 +436,15 @@ router.get("/", async (req, res, next) => {
     }
     if (isMissingMailboxTable(error)) {
       console.error("Tabela de e-mails ausente. Rode prisma migrate deploy.");
-      res.json({ data: [] } satisfies ApiResponse<MailboxItem[]>);
+      res.json({
+        data: {
+          items: [],
+          total: 0,
+          page: 1,
+          pageSize: PAGE_SIZE_DEFAULT,
+          unreadCount: 0,
+        },
+      } satisfies ApiResponse<MailboxPage>);
       return;
     }
     next(error);
@@ -393,6 +477,29 @@ router.get("/:id", async (req, res, next) => {
     res.json({
       data: serializeMailboxFromSent(row),
     } satisfies ApiResponse<MailboxItem>);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      next(new AppError(400, "ID inválido"));
+      return;
+    }
+    next(error);
+  }
+});
+
+/** PATCH /emails/:id/read — marca resposta como lida */
+router.patch("/:id/read", async (req, res, next) => {
+  try {
+    const rawId = z.string().min(1).parse(req.params.id);
+    const parsed = parseMailboxId(rawId);
+    if (parsed?.direction !== "received") {
+      res.json({ data: { ok: true } } satisfies ApiResponse<{ ok: boolean }>);
+      return;
+    }
+    await prisma.receivedEmail.updateMany({
+      where: { id: parsed.id, readAt: null },
+      data: { readAt: new Date() },
+    });
+    res.json({ data: { ok: true } } satisfies ApiResponse<{ ok: boolean }>);
   } catch (error) {
     if (error instanceof z.ZodError) {
       next(new AppError(400, "ID inválido"));
