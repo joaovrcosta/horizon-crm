@@ -74,3 +74,68 @@ export function normalizeLinkHref(raw: string) {
   if (/^https?:\/\//i.test(t) || /^mailto:/i.test(t)) return t;
   return `https://${t}`;
 }
+
+function sanitizeHref(href: string) {
+  const t = href.trim();
+  if (!t) return "";
+  if (/^https?:\/\//i.test(t) || /^mailto:/i.test(t)) return t;
+  return "";
+}
+
+/** Sanitiza HTML do corpo: só tags básicas + links seguros. */
+export function sanitizeEmailHtml(input: string) {
+  let html = input
+    .replace(
+      /<\s*(script|style|iframe|object|embed|form|input|button|meta|link)[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi,
+      "",
+    )
+    .replace(
+      /<\s*(script|style|iframe|object|embed|form|input|button|meta|link)[^>]*\/?\s*>/gi,
+      "",
+    )
+    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(
+      /\s(href|src)\s*=\s*("\s*javascript:[^"]*"|'\s*javascript:[^']*'|javascript:[^\s>]+)/gi,
+      "",
+    );
+
+  html = html.replace(
+    /<\s*a\b([^>]*)>([\s\S]*?)<\s*\/\s*a\s*>/gi,
+    (_match, attrs: string, inner: string) => {
+      const hrefMatch = attrs.match(
+        /\bhref\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))/i,
+      );
+      const rawHref = hrefMatch?.[2] ?? hrefMatch?.[3] ?? hrefMatch?.[4] ?? "";
+      const href = sanitizeHref(rawHref);
+      if (!href) return inner;
+      return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${inner}</a>`;
+    },
+  );
+
+  html = html.replace(
+    /<\/?(?!\/?(?:a|br|p|div|span|b|strong|i|em|u)\b)[a-z][^>]*>/gi,
+    "",
+  );
+
+  html = html.replace(
+    /<\s*(br|p|div|span|b|strong|i|em|u)\b[^>]*\/?\s*>/gi,
+    (_match, tag: string) => {
+      const t = tag.toLowerCase();
+      if (t === "br") return "<br>";
+      return `<${t}>`;
+    },
+  );
+  html = html.replace(/<\s*\/\s*(p|div|span|b|strong|i|em|u)\s*>/gi, "</$1>");
+
+  return html.trim();
+}
+
+/** Prepara HTML para exibir o corpo (texto puro ou HTML do editor). */
+export function prepareEmailMessageHtml(message: string) {
+  const trimmed = message.trim();
+  if (!trimmed) return "";
+  if (/<[a-z][\s\S]*>/i.test(trimmed)) {
+    return sanitizeEmailHtml(trimmed);
+  }
+  return escapeHtml(trimmed).replace(/\r\n|\r|\n/g, "<br>");
+}

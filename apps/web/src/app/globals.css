@@ -3432,10 +3432,35 @@ html[data-theme="light"] .compose-footer {
 .mail-reading-body {
   max-width: 920px;
   margin: 0 auto;
-  white-space: pre-wrap;
   font-size: 0.95rem;
   line-height: 1.65;
   color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.mail-reading-body p,
+.mail-reading-body div {
+  margin: 0 0 0.85em;
+}
+
+.mail-reading-body p:last-child,
+.mail-reading-body div:last-child {
+  margin-bottom: 0;
+}
+
+.mail-reading-body a {
+  color: var(--brand);
+  text-decoration: underline;
+}
+
+.mail-reading-body strong,
+.mail-reading-body b {
+  font-weight: 650;
+}
+
+.mail-reading-body em,
+.mail-reading-body i {
+  font-style: italic;
 }
 
 @media (max-width: 900px) {

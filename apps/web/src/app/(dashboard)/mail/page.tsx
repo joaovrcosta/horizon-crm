@@ -12,10 +12,11 @@ import {
   IconTrash,
 } from "@/components/icons";
 import { apiFetch } from "@/lib/api-client";
+import { htmlToPlainText, prepareEmailMessageHtml } from "@/lib/email-body";
 import { formatDateTime } from "@/lib/prospect-utils";
 
 function snippet(text: string, max = 120) {
-  const clean = text.replace(/\s+/g, " ").trim();
+  const clean = htmlToPlainText(text).replace(/\s+/g, " ").trim();
   if (clean.length <= max) return clean;
   return `${clean.slice(0, max)}…`;
 }
@@ -156,7 +157,12 @@ export default function MailPage() {
               </Link>
             ) : null}
           </header>
-          <div className="mail-reading-body">{selected.body}</div>
+          <div
+            className="mail-reading-body"
+            dangerouslySetInnerHTML={{
+              __html: prepareEmailMessageHtml(selected.body),
+            }}
+          />
         </article>
       </div>
     );
