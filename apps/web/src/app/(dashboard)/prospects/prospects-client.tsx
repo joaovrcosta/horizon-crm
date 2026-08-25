@@ -625,6 +625,14 @@ export default function ProspectsPage() {
     listTab === "FILTER"
       ? prospects
       : prospects.filter((p) => p.status === listTab);
+  const activeListTab =
+    listTab === "FILTER"
+      ? { label: "Filtro", count: prospects.length }
+      : {
+          label:
+            LIST_TABS.find((tab) => tab.value === listTab)?.label ?? "Clientes",
+          count: tabCounts[listTab],
+        };
   const wa = selected
     ? toWhatsAppLink(selected.whatsapp || selected.phone)
     : null;
@@ -686,8 +694,8 @@ export default function ProspectsPage() {
       <section className="list-pane">
         <div className="list-header">
           <h2>
-            Clientes
-            <span className="count">{prospects.length}</span>
+            {activeListTab.label}
+            <span className="count">{activeListTab.count}</span>
           </h2>
         </div>
 
