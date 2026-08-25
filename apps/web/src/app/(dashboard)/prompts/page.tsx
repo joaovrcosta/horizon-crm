@@ -275,7 +275,7 @@ export default function PromptsPage() {
 
       {showModal ? (
         <div className="modal-backdrop">
-          <form className="modal modal-wide" onSubmit={savePrompt}>
+          <form className="modal modal-wide prompt-modal" onSubmit={savePrompt}>
             <h2>{editing ? "Editar template" : "Novo template"}</h2>
             {error ? <p className="form-error">{error}</p> : null}
             <div className="form-grid">

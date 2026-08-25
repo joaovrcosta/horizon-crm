@@ -1864,38 +1864,6 @@ html[data-theme="light"] .signature-preview .signature-react-email a * {
   white-space: nowrap;
 }
 
-.template-content-field {
-  display: grid;
-  gap: var(--space-2);
-}
-
-.template-content-label-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  font-size: var(--text-small);
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.template-content-editor {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface-2);
-  padding: var(--space-3);
-  min-height: 200px;
-}
-
-.template-content-editor .compose-editor,
-.template-content-editor .compose-body-editor {
-  min-height: 160px;
-}
-
-.template-content-editor .compose-body-editor a {
-  color: var(--brand);
-}
-
 .template-vars-dropdown {
   grid-column: 1 / -1;
   border-radius: var(--radius-md);
@@ -2418,6 +2386,55 @@ html[data-theme="light"] .signature-preview .signature-react-email a * {
 
 .modal-wide {
   width: min(720px, 100%);
+}
+
+.prompt-modal {
+  max-height: min(640px, calc(100dvh - 2rem));
+  overflow: hidden;
+  align-content: start;
+}
+
+.prompt-modal .form-grid {
+  overflow-y: auto;
+  min-height: 0;
+  max-height: calc(min(640px, 100dvh - 2rem) - 9rem);
+  padding-right: 0.15rem;
+}
+
+.template-content-field {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.template-content-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--text-small);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.template-content-editor {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  padding: var(--space-3);
+  height: 200px;
+  max-height: 200px;
+  overflow: auto;
+}
+
+.template-content-editor .compose-editor,
+.template-content-editor .compose-body-editor {
+  min-height: 0;
+  height: auto;
+}
+
+.template-content-editor .compose-body-editor a {
+  color: var(--brand);
 }
 
 /* Gmail-like email compose (adapts to theme) */
