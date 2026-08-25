@@ -5,7 +5,6 @@ import {
   Html,
   Preview,
   Section,
-  Text,
 } from "@react-email/components";
 import {
   HalkEmailSignature,
@@ -13,11 +12,14 @@ import {
 } from "./halk-signature";
 
 export type ProspectOutreachEmailProps = {
-  message: string;
+  messageHtml: string;
   previewText?: string;
+  fontFamily?: string;
   signature?: HalkSignatureProps | null;
   includeSignature?: boolean;
 };
+
+const DEFAULT_FONT = "Georgia, 'Times New Roman', Times, serif";
 
 const styles = {
   body: {
@@ -30,31 +32,35 @@ const styles = {
     padding: "0",
     maxWidth: "560px",
   } as const,
-  message: {
-    fontFamily: "Georgia, 'Times New Roman', Times, serif",
+};
+
+export function ProspectOutreachEmail({
+  messageHtml,
+  previewText = "Mensagem",
+  fontFamily = DEFAULT_FONT,
+  signature,
+  includeSignature = true,
+}: ProspectOutreachEmailProps) {
+  const messageStyle = {
+    fontFamily,
     fontSize: "15px",
     color: "#111111",
     lineHeight: "1.55",
     margin: "0 0 28px 0",
-    whiteSpace: "pre-wrap" as const,
-  },
-};
+  } as const;
 
-export function ProspectOutreachEmail({
-  message,
-  previewText = "Mensagem",
-  signature,
-  includeSignature = true,
-}: ProspectOutreachEmailProps) {
   return (
     <Html>
       <Head />
       <Preview>{previewText}</Preview>
       <Body style={styles.body}>
         <Container style={styles.container}>
-          {message.trim() ? (
+          {messageHtml.trim() ? (
             <Section>
-              <Text style={styles.message}>{message.trim()}</Text>
+              <div
+                style={messageStyle}
+                dangerouslySetInnerHTML={{ __html: messageHtml }}
+              />
             </Section>
           ) : null}
           {includeSignature && signature ? (

@@ -8,6 +8,11 @@ import {
 import { AppError } from "./errors";
 import { ProspectOutreachEmail } from "../emails/prospect-outreach";
 import type { HalkSignatureProps } from "../emails/halk-signature";
+import {
+  htmlToPlainText,
+  prepareEmailMessageHtml,
+  resolveEmailFont,
+} from "./email-html";
 
 function getResend() {
   const key = process.env.RESEND_API_KEY?.trim();
@@ -65,21 +70,27 @@ export async function renderProspectEmailHtml(opts: {
   signature: EmailSignature | null;
   includeSignature: boolean;
   fallbackName?: string | null;
+  fontFamily?: string | null;
 }) {
   const signatureProps = opts.includeSignature
     ? toSignatureProps(opts.signature, opts.fallbackName)
     : null;
 
+  const messageHtml = prepareEmailMessageHtml(opts.message);
+  const fontFamily = resolveEmailFont(opts.fontFamily);
+  const plainMessage = htmlToPlainText(messageHtml) || opts.message.trim();
+
   const html = await render(
     createElement(ProspectOutreachEmail, {
-      message: opts.message,
+      messageHtml,
       previewText: opts.subject,
+      fontFamily,
       signature: signatureProps,
       includeSignature: Boolean(signatureProps),
     }),
   );
 
-  const textParts = [opts.message.trim()];
+  const textParts = [plainMessage];
   if (signatureProps) {
     const lines = [
       signatureProps.displayName,

@@ -12,10 +12,20 @@ import {
 } from "react";
 import type { EmailSignature, Prompt, Prospect } from "@horizon/shared";
 import { useAuth } from "@/components/auth-provider";
+import {
+  EmailBodyEditor,
+  EmailBodyToolbar,
+  type EmailBodyEditorHandle,
+} from "@/components/email-body-editor";
 import { EmailSignaturePreview } from "@/components/email-signature-preview";
 import { IconEdit, IconMail, IconTrash, IconX } from "@/components/icons";
 import { useToast } from "@/components/toast";
 import { apiFetch } from "@/lib/api-client";
+import {
+  DEFAULT_EMAIL_FONT,
+  htmlToPlainText,
+  plainTextToEditorHtml,
+} from "@/lib/email-body";
 import {
   buildHtmlSignature,
   buildPlainSignature,
@@ -57,6 +67,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [fontFamily, setFontFamily] = useState(DEFAULT_EMAIL_FONT);
   const [promptId, setPromptId] = useState("");
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [loadingPrompts, setLoadingPrompts] = useState(false);
@@ -66,6 +77,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
   const [hint, setHint] = useState("");
   const searchSeq = useRef(0);
   const toFieldRef = useRef<HTMLDivElement>(null);
+  const bodyEditorRef = useRef<EmailBodyEditorHandle>(null);
 
   const close = useCallback(() => {
     setOpen(false);
@@ -83,6 +95,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
     setShowSuggestions(false);
     setSubject("");
     setBody("");
+    setFontFamily(DEFAULT_EMAIL_FONT);
     setPromptId("");
     setHint("");
     setOpen(true);
@@ -104,13 +117,15 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
         setPrompts(promptList);
         setSignature(sig);
         setIncludeSignature(sig.enabled);
-        if (sig?.defaultIntro?.trim() && !body.trim()) {
+        if (sig?.defaultIntro?.trim() && !htmlToPlainText(body)) {
           setBody(
-            applyPromptTemplate(sig.defaultIntro, {
-              name: toName,
-              email: toEmail,
-              consultantName: user?.name,
-            }),
+            plainTextToEditorHtml(
+              applyPromptTemplate(sig.defaultIntro, {
+                name: toName,
+                email: toEmail,
+                consultantName: user?.name,
+              }),
+            ),
           );
         }
       } finally {
@@ -209,11 +224,13 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
     const prompt = prompts.find((p) => p.id === id);
     if (!prompt) return;
     setBody(
-      applyPromptTemplate(prompt.content, {
-        name: toName,
-        email: toEmail || toQuery,
-        consultantName: user?.name,
-      }),
+      plainTextToEditorHtml(
+        applyPromptTemplate(prompt.content, {
+          name: toName,
+          email: toEmail || toQuery,
+          consultantName: user?.name,
+        }),
+      ),
     );
     if (!subject.trim()) setSubject(prompt.title);
   }
@@ -243,7 +260,8 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
 
   async function send() {
     const recipient = (toEmail || toQuery).trim();
-    if (!recipient || !subject.trim() || !body.trim()) {
+    const plainBody = htmlToPlainText(body);
+    if (!recipient || !subject.trim() || !plainBody) {
       setHint("Preencha destinatário, assunto e corpo.");
       return;
     }
@@ -263,6 +281,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
           to: recipient,
           subject: subject.trim(),
           body: body.trim(),
+          fontFamily,
           includeSignature: includeSignature && Boolean(signature?.enabled),
         },
       });
@@ -289,12 +308,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
     <ComposeContext.Provider value={value}>
       {children}
       {open ? (
-        <div
-          className="compose-backdrop"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) close();
-          }}
-        >
+        <div className="compose-backdrop">
           <div
             className="compose-window"
             role="dialog"
@@ -395,10 +409,11 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
             </div>
 
             <div className="compose-body-wrap">
-              <textarea
-                className="compose-body"
+              <EmailBodyEditor
+                ref={bodyEditorRef}
                 value={body}
-                onChange={(e) => setBody(e.target.value)}
+                onChange={setBody}
+                fontFamily={fontFamily}
                 placeholder="Escreva sua mensagem…"
               />
               {signature && includeSignature && signature.enabled ? (
@@ -452,25 +467,32 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
               >
                 {sending ? "Enviando…" : "Enviar"}
               </button>
-              <div className="compose-footer-tools">
-                {signature?.enabled ? (
+              <div className="compose-footer-right">
+                <EmailBodyToolbar
+                  fontFamily={fontFamily}
+                  onFontFamilyChange={setFontFamily}
+                  onInsertLink={() => bodyEditorRef.current?.insertLink()}
+                />
+                <div className="compose-footer-tools">
+                  {signature?.enabled ? (
+                    <button
+                      type="button"
+                      className="compose-icon-btn"
+                      title="Copiar assinatura"
+                      onClick={() => void copySignatureOnly()}
+                    >
+                      <IconMail size={16} />
+                    </button>
+                  ) : null}
                   <button
                     type="button"
-                    className="compose-icon-btn"
-                    title="Copiar assinatura"
-                    onClick={() => void copySignatureOnly()}
+                    className="compose-icon-btn danger"
+                    title="Descartar"
+                    onClick={close}
                   >
-                    <IconMail size={16} />
+                    <IconTrash size={16} />
                   </button>
-                ) : null}
-                <button
-                  type="button"
-                  className="compose-icon-btn danger"
-                  title="Descartar"
-                  onClick={close}
-                >
-                  <IconTrash size={16} />
-                </button>
+                </div>
               </div>
             </footer>
           </div>

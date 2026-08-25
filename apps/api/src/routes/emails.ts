@@ -15,7 +15,8 @@ const router = Router({ mergeParams: true });
 
 const sendSchema = z.object({
   subject: z.string().min(1).max(300),
-  body: z.string().min(1).max(20000),
+  body: z.string().min(1).max(50000),
+  fontFamily: z.string().max(120).optional().nullable(),
   includeSignature: z.boolean().optional().default(true),
 });
 
@@ -113,6 +114,7 @@ router.post("/", async (req, res, next) => {
       signature,
       includeSignature: body.includeSignature,
       fallbackName: sender?.name,
+      fontFamily: body.fontFamily,
     });
 
     const replyTo = resolveReplyToEmail(signature);

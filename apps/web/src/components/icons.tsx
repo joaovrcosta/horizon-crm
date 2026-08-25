@@ -215,6 +215,15 @@ export function IconMail(props: IconProps) {
   );
 }
 
+export function IconLink(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M10 13a5 5 0 0 0 7.54.54l1.46-1.46a5 5 0 0 0-7.07-7.07L10.5 6.5" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54L4.99 11.9a5 5 0 0 0 7.07 7.07L13.5 17.5" />
+    </svg>
+  );
+}
+
 export function IconPanelLeft(props: IconProps) {
   return (
     <svg {...base(props)}>

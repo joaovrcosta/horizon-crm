@@ -19,6 +19,7 @@ import {
   buildPlainSignature,
   copyHtmlToClipboard,
 } from "@/lib/email-signature";
+import { EmailBodyEditor, EmailBodyToolbar, type EmailBodyEditorHandle } from "@/components/email-body-editor";
 import { EmailSignaturePreview } from "@/components/email-signature-preview";
 import { CountryFlag } from "@/components/country-flag";
 import { CountrySelect } from "@/components/country-select";
@@ -26,6 +27,11 @@ import { TagInput } from "@/components/tag-input";
 import { ProspectsListSkeleton } from "@/components/skeleton";
 import { useToast } from "@/components/toast";
 import { fireConfetti } from "@/lib/confetti";
+import {
+  DEFAULT_EMAIL_FONT,
+  htmlToPlainText,
+  plainTextToEditorHtml,
+} from "@/lib/email-body";
 import {
   applyPromptTemplate,
   formatDateTime,
@@ -161,6 +167,7 @@ export default function ProspectsPage() {
   const [listTab, setListTab] = useState<ProspectStatus | "FILTER">("NEW");
   const filtersRef = useRef<HTMLDivElement>(null);
   const hadFiltersRef = useRef(false);
+  const emailBodyEditorRef = useRef<EmailBodyEditorHandle>(null);
   const [loading, setLoading] = useState(true);
   const [formError, setFormError] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -183,6 +190,7 @@ export default function ProspectsPage() {
   const [emailPromptId, setEmailPromptId] = useState("");
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
+  const [emailFontFamily, setEmailFontFamily] = useState(DEFAULT_EMAIL_FONT);
   const [loadingPrompts, setLoadingPrompts] = useState(false);
   const [openingEmail, setOpeningEmail] = useState(false);
   const [emailSignature, setEmailSignature] = useState<EmailSignature | null>(
@@ -434,6 +442,7 @@ export default function ProspectsPage() {
     setEmailPromptId("");
     setEmailSubject(`Contato — ${selected.name}`);
     setEmailBody("");
+    setEmailFontFamily(DEFAULT_EMAIL_FONT);
     setEmailClipboardHint("");
     setShowEmailModal(true);
     setLoadingPrompts(true);
@@ -448,15 +457,17 @@ export default function ProspectsPage() {
 
       if (signature?.defaultIntro?.trim()) {
         setEmailBody(
-          applyPromptTemplate(signature.defaultIntro, {
-            name: selected.name,
-            email: selected.email,
-            phone: selected.phone || selected.whatsapp,
-            address: selected.address,
-            category: selected.category,
-            website: selected.website,
-            consultantName: user?.name,
-          }),
+          plainTextToEditorHtml(
+            applyPromptTemplate(signature.defaultIntro, {
+              name: selected.name,
+              email: selected.email,
+              phone: selected.phone || selected.whatsapp,
+              address: selected.address,
+              category: selected.category,
+              website: selected.website,
+              consultantName: user?.name,
+            }),
+          ),
         );
       }
     } finally {
@@ -470,15 +481,17 @@ export default function ProspectsPage() {
     const prompt = prompts.find((p) => p.id === promptId);
     if (!prompt) return;
     setEmailBody(
-      applyPromptTemplate(prompt.content, {
-        name: selected.name,
-        email: selected.email,
-        phone: selected.phone || selected.whatsapp,
-        address: selected.address,
-        category: selected.category,
-        website: selected.website,
-        consultantName: user?.name,
-      }),
+      plainTextToEditorHtml(
+        applyPromptTemplate(prompt.content, {
+          name: selected.name,
+          email: selected.email,
+          phone: selected.phone || selected.whatsapp,
+          address: selected.address,
+          category: selected.category,
+          website: selected.website,
+          consultantName: user?.name,
+        }),
+      ),
     );
     if (!emailSubject.trim()) {
       setEmailSubject(prompt.title);
@@ -487,7 +500,7 @@ export default function ProspectsPage() {
 
   async function sendEmailViaResend() {
     if (!selected?.email) return;
-    if (!emailSubject.trim() || !emailBody.trim()) {
+    if (!emailSubject.trim() || !htmlToPlainText(emailBody)) {
       setEmailClipboardHint("Preencha assunto e corpo antes de enviar.");
       return;
     }
@@ -504,6 +517,7 @@ export default function ProspectsPage() {
         body: {
           subject: emailSubject.trim(),
           body: emailBody.trim(),
+          fontFamily: emailFontFamily,
           includeSignature: includeSignature && Boolean(emailSignature?.enabled),
         },
       });
@@ -1360,12 +1374,7 @@ export default function ProspectsPage() {
       ) : null}
 
       {showEmailModal && selected?.email ? (
-        <div
-          className="compose-backdrop"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowEmailModal(false);
-          }}
-        >
+        <div className="compose-backdrop">
           <div
             className="compose-window"
             role="dialog"
@@ -1430,10 +1439,11 @@ export default function ProspectsPage() {
             </div>
 
             <div className="compose-body-wrap">
-              <textarea
-                className="compose-body"
+              <EmailBodyEditor
+                ref={emailBodyEditorRef}
                 value={emailBody}
-                onChange={(e) => setEmailBody(e.target.value)}
+                onChange={setEmailBody}
+                fontFamily={emailFontFamily}
                 placeholder="Escreva sua mensagem…"
               />
               {emailSignature && includeSignature && emailSignature.enabled ? (
@@ -1488,25 +1498,32 @@ export default function ProspectsPage() {
               >
                 {openingEmail ? "Enviando…" : "Enviar"}
               </button>
-              <div className="compose-footer-tools">
-                {emailSignature?.enabled ? (
+              <div className="compose-footer-right">
+                <EmailBodyToolbar
+                  fontFamily={emailFontFamily}
+                  onFontFamilyChange={setEmailFontFamily}
+                  onInsertLink={() => emailBodyEditorRef.current?.insertLink()}
+                />
+                <div className="compose-footer-tools">
+                  {emailSignature?.enabled ? (
+                    <button
+                      type="button"
+                      className="compose-icon-btn"
+                      title="Copiar assinatura"
+                      onClick={() => void copySignatureOnly()}
+                    >
+                      <IconMail size={16} />
+                    </button>
+                  ) : null}
                   <button
                     type="button"
-                    className="compose-icon-btn"
-                    title="Copiar assinatura"
-                    onClick={() => void copySignatureOnly()}
+                    className="compose-icon-btn danger"
+                    title="Descartar"
+                    onClick={() => setShowEmailModal(false)}
                   >
-                    <IconMail size={16} />
+                    <IconTrash size={16} />
                   </button>
-                ) : null}
-                <button
-                  type="button"
-                  className="compose-icon-btn danger"
-                  title="Descartar"
-                  onClick={() => setShowEmailModal(false)}
-                >
-                  <IconTrash size={16} />
-                </button>
+                </div>
               </div>
             </footer>
           </div>
