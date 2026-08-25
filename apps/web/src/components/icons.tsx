@@ -257,6 +257,15 @@ export function IconChevronRight(props: IconProps) {
   );
 }
 
+export function IconReply(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M9 17 4 12l5-5" />
+      <path d="M4 12h11a5 5 0 0 1 5 5v1" />
+    </svg>
+  );
+}
+
 export function IconAlert(props: IconProps) {
   return (
     <svg {...base(props)}>

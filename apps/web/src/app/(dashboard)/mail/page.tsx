@@ -9,10 +9,12 @@ import {
   IconChevronRight,
   IconEdit,
   IconMail,
+  IconReply,
   IconSearch,
   IconTrash,
 } from "@/components/icons";
-import { apiFetch } from "@/lib/api-client";
+import { useToast } from "@/components/toast";
+import { MailListSkeleton, MailSkeleton } from "@/components/skeleton";
 import { htmlToPlainText, prepareEmailMessageHtml } from "@/lib/email-body";
 import { formatDateTime } from "@/lib/prospect-utils";
 
@@ -64,6 +66,11 @@ function contactEmail(email: MailboxItem) {
   return email.direction === "received" ? email.fromEmail : email.toEmail;
 }
 
+function replySubject(subject: string) {
+  const trimmed = subject.trim() || "(sem assunto)";
+  return /^(re|res)\s*:/i.test(trimmed) ? trimmed : `Re: ${trimmed}`;
+}
+
 const FOLDERS: { id: MailFolder; label: string }[] = [
   { id: "all", label: "Todos" },
   { id: "received", label: "Recebidos" },
@@ -91,6 +98,7 @@ function parseMailboxPage(data: MailboxPage | MailboxItem[] | null | undefined):
 
 export default function MailPage() {
   const { open: openCompose } = useComposeEmail();
+  const toast = useToast();
   const [emails, setEmails] = useState<MailboxItem[]>([]);
   const [total, setTotal] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -102,6 +110,7 @@ export default function MailPage() {
   const [appliedQuery, setAppliedQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -133,6 +142,14 @@ export default function MailPage() {
 
   useEffect(() => {
     void load();
+  }, [load]);
+
+  useEffect(() => {
+    function onMailChanged() {
+      void load();
+    }
+    window.addEventListener("horizon-mail-changed", onMailChanged);
+    return () => window.removeEventListener("horizon-mail-changed", onMailChanged);
   }, [load]);
 
   const selected = useMemo(
@@ -191,6 +208,39 @@ export default function MailPage() {
     }
   }
 
+  function startReply(item: MailboxItem) {
+    openCompose({
+      to: item.fromEmail,
+      name: item.fromName?.trim() || item.prospectName || undefined,
+      subject: replySubject(item.subject),
+      reply: true,
+    });
+  }
+
+  async function deleteEmails(ids: string[]) {
+    const unique = [...new Set(ids)].filter(Boolean);
+    if (unique.length === 0 || deleting) return;
+    setDeleting(true);
+    try {
+      await apiFetch("/emails/bulk-delete", {
+        method: "POST",
+        body: { ids: unique },
+      });
+      toast.success(
+        unique.length === 1
+          ? "E-mail excluído."
+          : `${unique.length} e-mails excluídos.`,
+      );
+      if (selectedId && unique.includes(selectedId)) setSelectedId(null);
+      setSelectedIds(new Set());
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao excluir");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   if (selected) {
     const inbound = selected.direction === "received";
     return (
@@ -205,6 +255,25 @@ export default function MailPage() {
             Voltar
           </button>
           <div className="mail-toolbar-spacer" />
+          {inbound ? (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => startReply(selected)}
+            >
+              <IconReply size={15} />
+              Responder
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="mail-toolbar-btn"
+            disabled={deleting}
+            onClick={() => void deleteEmails([selected.id])}
+          >
+            <IconTrash size={15} />
+            Excluir
+          </button>
           <button
             type="button"
             className="btn btn-primary"
@@ -275,6 +344,10 @@ export default function MailPage() {
     );
   }
 
+  if (loading && emails.length === 0) {
+    return <MailSkeleton />;
+  }
+
   const emptyLabel =
     folder === "received"
       ? "Nenhum e-mail recebido."
@@ -340,6 +413,17 @@ export default function MailPage() {
             <IconChevronRight size={16} />
           </button>
         </div>
+        {selectedIds.size > 0 ? (
+          <button
+            type="button"
+            className="mail-toolbar-btn"
+            disabled={deleting}
+            onClick={() => void deleteEmails([...selectedIds])}
+          >
+            <IconTrash size={15} />
+            Excluir {selectedIds.size}
+          </button>
+        ) : null}
         <button
           type="button"
           className="btn btn-primary"
@@ -366,7 +450,7 @@ export default function MailPage() {
           <span className="mail-col-date">Data</span>
         </div>
 
-        {loading ? <p className="mail-status">Carregando…</p> : null}
+        {loading ? <MailListSkeleton rows={10} /> : null}
         {!loading && error ? (
           <p className="mail-status mail-status-error">{error}</p>
         ) : null}
@@ -428,12 +512,28 @@ export default function MailPage() {
                       {formatListDate(item.createdAt)}
                     </time>
                     <span className="mail-row-actions">
+                      {isReply ? (
+                        <button
+                          type="button"
+                          className="mail-action-btn"
+                          title="Responder"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startReply(item);
+                          }}
+                        >
+                          <IconReply size={15} />
+                        </button>
+                      ) : null}
                       <button
                         type="button"
                         className="mail-action-btn"
-                        title="Excluir (em breve)"
-                        disabled
-                        onClick={(e) => e.stopPropagation()}
+                        title="Excluir"
+                        disabled={deleting}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void deleteEmails([item.id]);
+                        }}
                       >
                         <IconTrash size={15} />
                       </button>

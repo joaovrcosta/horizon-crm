@@ -3348,6 +3348,13 @@ html[data-theme="light"] .compose-footer {
   box-shadow: inset 1px 0 0 var(--border), inset -1px 0 0 var(--border);
 }
 
+.mail-tr.list-item-skeleton,
+.mail-tr.list-item-skeleton:hover {
+  cursor: default;
+  background: transparent;
+  box-shadow: none;
+}
+
 .mail-tr.checked {
   background: color-mix(in srgb, var(--brand) 10%, var(--surface));
 }

@@ -8,10 +8,11 @@ import { ProspectsSkeleton } from "./prospects";
 import { PromptsSkeleton } from "./prompts";
 import { UsersSkeleton } from "./users";
 import { SettingsSkeleton } from "./settings";
+import { MailSkeleton } from "./mail";
 
 function pageSkeletonForPath(pathname: string) {
   if (pathname.startsWith("/prospects")) return <ProspectsSkeleton />;
-  if (pathname.startsWith("/mail")) return <DashboardSkeleton />;
+  if (pathname.startsWith("/mail")) return <MailSkeleton />;
   if (pathname.startsWith("/pipeline")) return <PipelineSkeleton />;
   if (pathname.startsWith("/prompts")) return <PromptsSkeleton />;
   if (pathname.startsWith("/users")) return <UsersSkeleton />;

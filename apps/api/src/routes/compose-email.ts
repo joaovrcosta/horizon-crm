@@ -509,6 +509,64 @@ router.patch("/:id/read", async (req, res, next) => {
   }
 });
 
+async function deleteMailboxIds(ids: string[]) {
+  const sentIds: string[] = [];
+  const receivedIds: string[] = [];
+  for (const raw of ids) {
+    const parsed = parseMailboxId(raw);
+    if (parsed?.direction === "received") receivedIds.push(parsed.id);
+    else sentIds.push(parsed?.id ?? raw);
+  }
+
+  const ops: Promise<unknown>[] = [];
+  if (sentIds.length) {
+    ops.push(prisma.sentEmail.deleteMany({ where: { id: { in: sentIds } } }));
+  }
+  if (receivedIds.length) {
+    ops.push(
+      prisma.receivedEmail.deleteMany({ where: { id: { in: receivedIds } } }),
+    );
+  }
+  await Promise.all(ops);
+  return { sent: sentIds.length, received: receivedIds.length };
+}
+
+/** POST /emails/bulk-delete */
+router.post("/bulk-delete", async (req, res, next) => {
+  try {
+    const body = z
+      .object({
+        ids: z.array(z.string().min(1)).min(1).max(200),
+      })
+      .parse(req.body);
+    const result = await deleteMailboxIds(body.ids);
+    res.json({
+      data: { ok: true, ...result },
+    } satisfies ApiResponse<{ ok: boolean; sent: number; received: number }>);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      next(new AppError(400, error.issues[0]?.message ?? "IDs inválidos"));
+      return;
+    }
+    next(error);
+  }
+});
+
+/** DELETE /emails/:id */
+router.delete("/:id", async (req, res, next) => {
+  try {
+    const rawId = z.string().min(1).parse(req.params.id);
+    await deleteMailboxIds([rawId]);
+    res.json({ data: { ok: true } } satisfies ApiResponse<{ ok: boolean }>);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      next(new AppError(400, "ID inválido"));
+      return;
+    }
+    next(error);
+  }
+});
+
 /** POST /emails — envia e-mail livre (qualquer destinatário) */
 router.post("/", async (req, res, next) => {
   try {

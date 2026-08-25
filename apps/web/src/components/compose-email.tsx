@@ -39,8 +39,16 @@ import {
 } from "@/lib/compose-email-schema";
 import { applyPromptTemplate } from "@/lib/prospect-utils";
 
+type ComposeOpenOptions = {
+  to?: string;
+  name?: string;
+  subject?: string;
+  body?: string;
+  reply?: boolean;
+};
+
 type ComposeContextValue = {
-  open: (opts?: { to?: string; name?: string }) => void;
+  open: (opts?: ComposeOpenOptions) => void;
   close: () => void;
 };
 
@@ -79,6 +87,8 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
   const [includeSignature, setIncludeSignature] = useState(true);
   const [sending, setSending] = useState(false);
   const [hint, setHint] = useState("");
+  const [isReply, setIsReply] = useState(false);
+  const skipIntroRef = useRef(false);
   const searchSeq = useRef(0);
   const toFieldRef = useRef<HTMLDivElement>(null);
   const bodyEditorRef = useRef<EmailBodyEditorHandle>(null);
@@ -108,15 +118,23 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
     setShowSuggestions(false);
     setSearchingRecipients(false);
     reset({ to: "", subject: "", body: "" });
+    setIsReply(false);
+    skipIntroRef.current = false;
   }, [reset]);
 
   const openCompose = useCallback(
-    (opts?: { to?: string; name?: string }) => {
+    (opts?: ComposeOpenOptions) => {
+      skipIntroRef.current = Boolean(opts?.reply);
+      setIsReply(Boolean(opts?.reply));
       setToName(opts?.name ?? "");
       setToQuery(opts?.to ?? opts?.name ?? "");
       setSuggestions([]);
       setShowSuggestions(false);
-      reset({ to: opts?.to ?? "", subject: "", body: "" });
+      reset({
+        to: opts?.to ?? "",
+        subject: opts?.subject ?? "",
+        body: opts?.body ?? "",
+      });
       setFontFamily(DEFAULT_EMAIL_FONT);
       setPromptId("");
       setHint("");
@@ -143,6 +161,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
         setSignature(sig);
         setIncludeSignature(sig.enabled);
         if (
+          !skipIntroRef.current &&
           sig?.defaultIntro?.trim() &&
           !htmlToPlainText(getValues("body"))
         ) {
@@ -309,6 +328,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
       toast.success(
         `E-mail enviado. Respostas vão para ${result.replyTo ?? "hello@halk.solutions"}.`,
       );
+      window.dispatchEvent(new Event("horizon-mail-changed"));
       close();
     } catch (err) {
       const message =
@@ -347,7 +367,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
             className={`compose-window${minimized ? " is-minimized" : ""}`}
             role="dialog"
             aria-modal={!minimized}
-            aria-label="Nova mensagem"
+            aria-label={isReply ? "Responder" : "Nova mensagem"}
           >
             <header
               className="compose-header"
@@ -355,7 +375,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
               title={minimized ? "Expandir" : "Minimizar"}
             >
               <strong>
-                {subject.trim() || "Nova mensagem"}
+                {subject.trim() || (isReply ? "Responder" : "Nova mensagem")}
               </strong>
               <div
                 className="compose-header-actions"
