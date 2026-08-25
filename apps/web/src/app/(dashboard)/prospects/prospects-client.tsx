@@ -11,9 +11,10 @@ import type {
   Prospect,
   ProspectActivity,
   ProspectStatus,
+  SiteQuality,
   UserOption,
 } from "@horizon/shared";
-import { PROSPECT_STATUSES, STATUS_LABELS } from "@horizon/shared";
+import { PROSPECT_STATUSES, SITE_QUALITIES, SITE_QUALITY_LABELS, STATUS_LABELS } from "@horizon/shared";
 import { useAuth } from "@/components/auth-provider";
 import { apiFetch } from "@/lib/api-client";
 import {
@@ -26,6 +27,7 @@ import { EmailSignaturePreview } from "@/components/email-signature-preview";
 import { CountryFlag } from "@/components/country-flag";
 import { CountrySelect } from "@/components/country-select";
 import { TagInput } from "@/components/tag-input";
+import { SiteQualityMeter } from "@/components/site-quality";
 import { ProspectsListSkeleton } from "@/components/skeleton";
 import { useToast } from "@/components/toast";
 import { fireConfetti } from "@/lib/confetti";
@@ -73,6 +75,7 @@ type FormState = {
   whatsapp: string;
   mapsUrl: string;
   website: string;
+  siteQuality: SiteQuality | "";
   category: string;
   country: string;
   languages: string[];
@@ -92,6 +95,7 @@ const emptyForm = (assigneeId = ""): FormState => ({
   whatsapp: "",
   mapsUrl: "",
   website: "",
+  siteQuality: "",
   category: "",
   country: "",
   languages: [],
@@ -112,6 +116,7 @@ function prospectToForm(p: Prospect): FormState {
     whatsapp: p.whatsapp ?? "",
     mapsUrl: p.mapsUrl ?? "",
     website: p.website ?? "",
+    siteQuality: p.siteQuality ?? "",
     category: p.category ?? "",
     country: p.country ?? "",
     languages: p.languages ?? [],
@@ -371,6 +376,7 @@ export default function ProspectsPage() {
       languages: form.languages,
       country: form.country || null,
       website: form.website.trim() || null,
+      siteQuality: form.siteQuality || null,
       mapsUrl: form.mapsUrl.trim() || null,
       estimatedValue: form.estimatedValue
         ? Number(form.estimatedValue)
@@ -693,6 +699,9 @@ export default function ProspectsPage() {
                 {language}
               </span>
             ))}
+            {p.siteQuality ? (
+              <SiteQualityMeter value={p.siteQuality} />
+            ) : null}
             {isOverdue(p.nextContactAt, p.status) ? (
               <span className="status-pill status-overdue">Atrasado</span>
             ) : null}
@@ -1162,6 +1171,28 @@ export default function ProspectsPage() {
                   </dd>
                 </div>
                 <div className="kv-row">
+                  <dt>Qualidade do site</dt>
+                  <dd>
+                    <select
+                      value={selected.siteQuality ?? ""}
+                      onChange={(e) =>
+                        void updateSelected({
+                          siteQuality: (e.target.value || null) as
+                            | SiteQuality
+                            | null,
+                        })
+                      }
+                    >
+                      <option value="">Não informado</option>
+                      {SITE_QUALITIES.map((quality) => (
+                        <option key={quality} value={quality}>
+                          {SITE_QUALITY_LABELS[quality]}
+                        </option>
+                      ))}
+                    </select>
+                  </dd>
+                </div>
+                <div className="kv-row">
                   <dt>Endereço</dt>
                   <dd>{selected.address || "—"}</dd>
                 </div>
@@ -1458,6 +1489,25 @@ export default function ProspectsPage() {
                   }
                   placeholder="exemplo.com.br"
                 />
+              </label>
+              <label>
+                Qualidade do site
+                <select
+                  value={form.siteQuality}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      siteQuality: e.target.value as SiteQuality | "",
+                    })
+                  }
+                >
+                  <option value="">Não informado</option>
+                  {SITE_QUALITIES.map((quality) => (
+                    <option key={quality} value={quality}>
+                      {SITE_QUALITY_LABELS[quality]}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label>
                 Ticket estimado (R$)

@@ -32,6 +32,8 @@ export type ProspectStatus =
   | "WON"
   | "LOST";
 
+export type SiteQuality = "LOW" | "MEDIUM" | "HIGH";
+
 export type ActivityType =
   | "NOTE"
   | "CALL"
@@ -81,6 +83,7 @@ export type Prospect = {
   whatsapp: string | null;
   mapsUrl: string | null;
   website: string | null;
+  siteQuality: SiteQuality | null;
   category: string | null;
   country: string | null; // ISO 3166-1 alpha-2 (ex.: BR)
   languages: string[];
@@ -287,6 +290,14 @@ export const STATUS_LABELS: Record<ProspectStatus, string> = {
   NEGOTIATING: "Negociando",
   WON: "Ganho",
   LOST: "Perdido",
+};
+
+export const SITE_QUALITIES: SiteQuality[] = ["LOW", "MEDIUM", "HIGH"];
+
+export const SITE_QUALITY_LABELS: Record<SiteQuality, string> = {
+  LOW: "Baixo",
+  MEDIUM: "Médio",
+  HIGH: "Alto",
 };
 
 export function createHealthStatus(service: string): HealthStatus {

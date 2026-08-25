@@ -1391,6 +1391,22 @@ button.list-section-label .chevron-open {
   color: #7dd3fc;
 }
 
+.site-quality {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.site-quality-bar-on {
+  fill: #5eead4;
+}
+
+.site-quality-bar-off {
+  fill: #3f3f46;
+}
+
 .tag-chip-remove {
   display: inline-flex;
   align-items: center;
@@ -5079,6 +5095,14 @@ html[data-theme="light"] .tag-chip-category {
 html[data-theme="light"] .tag-chip-language {
   background: #e7f6fe;
   color: #0369a1;
+}
+
+html[data-theme="light"] .site-quality-bar-on {
+  fill: #0d9488;
+}
+
+html[data-theme="light"] .site-quality-bar-off {
+  fill: #d4d4d8;
 }
 
 html[data-theme="light"] .tag-public {

@@ -1,4 +1,4 @@
-import { ActivityType, Prisma, ProspectStatus } from "@prisma/client";
+import { ActivityType, Prisma, ProspectStatus, SiteQuality } from "@prisma/client";
 import { digitsOnly, normalizeCountryCode } from "@horizon/shared";
 import type { Prospect } from "@horizon/shared";
 import { AppError } from "./errors";
@@ -21,6 +21,7 @@ export type ProspectWithAssignee = {
   whatsapp: string | null;
   mapsUrl: string | null;
   website: string | null;
+  siteQuality: SiteQuality | null;
   category: string | null;
   country: string | null;
   languages: string[];
@@ -46,6 +47,7 @@ export function serializeProspect(p: ProspectWithAssignee): Prospect {
     whatsapp: p.whatsapp,
     mapsUrl: p.mapsUrl,
     website: p.website,
+    siteQuality: p.siteQuality,
     category: p.category,
     country: normalizeCountryCode(p.country),
     languages: p.languages ?? [],

@@ -36,6 +36,12 @@ enum ProspectTagKind {
   LANGUAGE
 }
 
+enum SiteQuality {
+  LOW
+  MEDIUM
+  HIGH
+}
+
 model Role {
   id          String           @id @default(cuid())
   slug        String           @unique
@@ -107,6 +113,7 @@ model Prospect {
   whatsapp       String?
   mapsUrl        String?
   website        String?
+  siteQuality    SiteQuality?
   category       String?
   country        String?
   languages      String[]           @default([])

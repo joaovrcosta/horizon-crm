@@ -48,7 +48,7 @@ const statusEnum = z.enum([
   "LOST",
 ]);
 
-const dueEnum = z.enum(["overdue", "today", "upcoming"]);
+const siteQualityEnum = z.enum(["LOW", "MEDIUM", "HIGH"]);
 
 const createSchema = z.object({
   name: z.string().min(1).max(200),
@@ -58,6 +58,7 @@ const createSchema = z.object({
   whatsapp: z.string().max(50).optional().nullable(),
   mapsUrl: z.string().max(2000).optional().nullable(),
   website: z.string().max(2000).optional().nullable(),
+  siteQuality: siteQualityEnum.optional().nullable(),
   category: z.string().max(120).optional().nullable(),
   country: z.string().max(120).optional().nullable(),
   languages: z.array(z.string().min(1).max(80)).max(20).optional(),
@@ -342,6 +343,7 @@ router.post("/", async (req, res, next) => {
         whatsapp,
         mapsUrl,
         website: normalizeWebsiteUrl(body.website),
+        siteQuality: body.siteQuality ?? null,
         category: await resolveTagName("CATEGORY", emptyToNull(body.category)),
         country: parseCountry(body.country),
         languages: await resolveTagNames("LANGUAGE", body.languages ?? []),
@@ -431,6 +433,9 @@ router.patch("/:id", async (req, res, next) => {
         ...(body.mapsUrl !== undefined ? { mapsUrl: nextMaps } : {}),
         ...(body.website !== undefined
           ? { website: normalizeWebsiteUrl(body.website) }
+          : {}),
+        ...(body.siteQuality !== undefined
+          ? { siteQuality: body.siteQuality }
           : {}),
         ...(body.category !== undefined
           ? { category: await resolveTagName("CATEGORY", emptyToNull(body.category)) }

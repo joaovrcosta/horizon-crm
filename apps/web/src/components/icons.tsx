@@ -308,3 +308,40 @@ export function IconWhatsApp({ size = 16, ...props }: IconProps) {
     </svg>
   );
 }
+
+export function IconSiteQuality({
+  level,
+  size = 16,
+  ...props
+}: IconProps & { level: 1 | 2 | 3 }) {
+  const bars = [
+    { x: 2, y: 11, h: 9 },
+    { x: 9, y: 6.5, h: 13.5 },
+    { x: 16, y: 2, h: 18 },
+  ] as const;
+
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden
+      {...props}
+    >
+      {bars.map((bar, index) => (
+        <rect
+          key={bar.x}
+          x={bar.x}
+          y={bar.y}
+          width="5"
+          height={bar.h}
+          rx="1.2"
+          className={
+            index < level ? "site-quality-bar-on" : "site-quality-bar-off"
+          }
+        />
+      ))}
+    </svg>
+  );
+}
