@@ -688,6 +688,9 @@ export default function ProspectsPage() {
         </span>
         {!compact ? (
           <div className="meta">
+            {p.siteQuality ? (
+              <SiteQualityMeter value={p.siteQuality} />
+            ) : null}
             <span className={`status-pill status-${p.status}`}>
               {STATUS_LABELS[p.status]}
             </span>
@@ -699,9 +702,6 @@ export default function ProspectsPage() {
                 {language}
               </span>
             ))}
-            {p.siteQuality ? (
-              <SiteQualityMeter value={p.siteQuality} />
-            ) : null}
             {isOverdue(p.nextContactAt, p.status) ? (
               <span className="status-pill status-overdue">Atrasado</span>
             ) : null}
