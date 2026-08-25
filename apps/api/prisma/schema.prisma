@@ -37,6 +37,7 @@ enum ProspectTagKind {
 }
 
 enum SiteQuality {
+  NO_SITE
   LOW
   MEDIUM
   HIGH

@@ -4,7 +4,7 @@ import type { SiteQuality } from "@horizon/shared";
 import { SITE_QUALITY_LABELS } from "@horizon/shared";
 import { IconSiteQuality } from "@/components/icons";
 
-const LEVEL: Record<SiteQuality, 1 | 2 | 3> = {
+const LEVEL: Record<Exclude<SiteQuality, "NO_SITE">, 1 | 2 | 3> = {
   LOW: 1,
   MEDIUM: 2,
   HIGH: 3,
@@ -18,6 +18,15 @@ export function SiteQualityMeter({
   size?: number;
 }) {
   const label = SITE_QUALITY_LABELS[value];
+
+  if (value === "NO_SITE") {
+    return (
+      <span className="tag-chip tag-chip-no-site" title="Sem site">
+        Sem site
+      </span>
+    );
+  }
+
   return (
     <span
       className="site-quality"

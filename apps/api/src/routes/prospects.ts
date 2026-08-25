@@ -48,7 +48,7 @@ const statusEnum = z.enum([
   "LOST",
 ]);
 
-const siteQualityEnum = z.enum(["LOW", "MEDIUM", "HIGH"]);
+const siteQualityEnum = z.enum(["NO_SITE", "LOW", "MEDIUM", "HIGH"]);
 
 const createSchema = z.object({
   name: z.string().min(1).max(200),

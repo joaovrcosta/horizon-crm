@@ -1391,6 +1391,11 @@ button.list-section-label .chevron-open {
   color: #7dd3fc;
 }
 
+.tag-chip-no-site {
+  background: rgba(161, 161, 170, 0.16);
+  color: #a1a1aa;
+}
+
 .site-quality {
   display: inline-flex;
   align-items: center;
@@ -5095,6 +5100,11 @@ html[data-theme="light"] .tag-chip-category {
 html[data-theme="light"] .tag-chip-language {
   background: #e7f6fe;
   color: #0369a1;
+}
+
+html[data-theme="light"] .tag-chip-no-site {
+  background: #f4f4f5;
+  color: #52525b;
 }
 
 html[data-theme="light"] .site-quality-bar-on {

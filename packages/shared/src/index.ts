@@ -32,7 +32,7 @@ export type ProspectStatus =
   | "WON"
   | "LOST";
 
-export type SiteQuality = "LOW" | "MEDIUM" | "HIGH";
+export type SiteQuality = "NO_SITE" | "LOW" | "MEDIUM" | "HIGH";
 
 export type ActivityType =
   | "NOTE"
@@ -292,9 +292,10 @@ export const STATUS_LABELS: Record<ProspectStatus, string> = {
   LOST: "Perdido",
 };
 
-export const SITE_QUALITIES: SiteQuality[] = ["LOW", "MEDIUM", "HIGH"];
+export const SITE_QUALITIES: SiteQuality[] = ["NO_SITE", "LOW", "MEDIUM", "HIGH"];
 
 export const SITE_QUALITY_LABELS: Record<SiteQuality, string> = {
+  NO_SITE: "Sem site",
   LOW: "Baixo",
   MEDIUM: "Médio",
   HIGH: "Alto",
