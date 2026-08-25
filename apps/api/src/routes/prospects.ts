@@ -49,6 +49,7 @@ const statusEnum = z.enum([
 ]);
 
 const siteQualityEnum = z.enum(["NO_SITE", "LOW", "MEDIUM", "HIGH"]);
+const dueEnum = z.enum(["overdue", "today", "upcoming"]);
 
 const createSchema = z.object({
   name: z.string().min(1).max(200),
