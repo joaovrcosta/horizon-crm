@@ -69,7 +69,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<ProspectStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [preset, setPreset] = useState<DashboardPeriodPreset>(7);
+  const [preset, setPreset] = useState<DashboardPeriodPreset>(1);
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
   const [appliedCustom, setAppliedCustom] = useState({ from: "", to: "" });
@@ -85,7 +85,7 @@ export default function DashboardPage() {
       const path =
         preset === "custom" && appliedCustom.from && appliedCustom.to
           ? buildStatsPath("custom", appliedCustom.from, appliedCustom.to)
-          : buildStatsPath(preset === "custom" ? 7 : preset, "", "");
+          : buildStatsPath(preset === "custom" ? 1 : preset, "", "");
       const data = await apiFetch<ProspectStats>(path);
       setStats(data);
     } catch (err) {
