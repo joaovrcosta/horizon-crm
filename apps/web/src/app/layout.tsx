@@ -6,7 +6,10 @@ import { ToastProvider } from "@/components/toast";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Horizon Management",
+  title: {
+    default: "Horizon",
+    template: "%s · Horizon",
+  },
   description: "Clientes e templates de e-mail para agência",
   icons: {
     icon: [{ url: "/brand/horizon-logo.svg", type: "image/svg+xml" }],

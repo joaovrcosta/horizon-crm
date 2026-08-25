@@ -6,6 +6,7 @@ import { AuthGuard } from "@/components/auth-guard";
 import { ComposeEmailProvider } from "@/components/compose-email";
 import { Sidebar } from "@/components/sidebar";
 import { IconMenu } from "@/components/icons";
+import { pageTitleFromPathname } from "@/lib/page-title";
 
 export function DashboardShell({
   children,
@@ -15,7 +16,21 @@ export function DashboardShell({
   initialSidebarCollapsed?: boolean;
 }) {
   const pathname = usePathname();
+  const pageTitle = pageTitleFromPathname(pathname);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  useEffect(() => {
+    const apply = () => {
+      document.title = `${pageTitle} · Horizon`;
+    };
+    apply();
+    const frame = window.requestAnimationFrame(apply);
+    const timer = window.setTimeout(apply, 0);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
+  }, [pageTitle]);
 
   useEffect(() => {
     setMobileNavOpen(false);
@@ -61,7 +76,7 @@ export function DashboardShell({
                 width={85}
                 height={28}
               />
-              <span>horizon.</span>
+              <span className="mobile-topbar-title">{pageTitle}</span>
             </div>
           </header>
           <button

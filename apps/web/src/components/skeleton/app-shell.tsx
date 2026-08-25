@@ -9,6 +9,7 @@ import { PromptsSkeleton } from "./prompts";
 import { UsersSkeleton } from "./users";
 import { SettingsSkeleton } from "./settings";
 import { MailSkeleton } from "./mail";
+import { pageTitleFromPathname } from "@/lib/page-title";
 
 function pageSkeletonForPath(pathname: string) {
   if (pathname.startsWith("/prospects")) return <ProspectsSkeleton />;
@@ -39,7 +40,9 @@ export function AppShellSkeleton({
             width={85}
             height={28}
           />
-          <span>horizon.</span>
+          <span className="mobile-topbar-title">
+            {pageTitleFromPathname(pathname)}
+          </span>
         </div>
       </header>
       <SidebarSkeleton initialCollapsed={initialSidebarCollapsed} />

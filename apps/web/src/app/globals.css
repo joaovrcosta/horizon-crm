@@ -4456,6 +4456,12 @@ html[data-theme="light"] .mail-search input {
     width: auto;
   }
 
+  .mobile-topbar-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .mobile-topbar-toggle-skeleton {
     width: 2.25rem;
     height: 2.25rem;
