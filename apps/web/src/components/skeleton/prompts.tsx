@@ -2,7 +2,7 @@ import { Skeleton, SkeletonBlock } from "./skeleton";
 
 export function PromptsSkeleton() {
   return (
-    <SkeletonBlock>
+    <SkeletonBlock className="prompts-page">
       <div className="page-header">
         <Skeleton width={180} height={28} />
         <Skeleton width={150} height={36} radius={6} />

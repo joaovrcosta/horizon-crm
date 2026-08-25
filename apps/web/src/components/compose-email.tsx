@@ -18,7 +18,7 @@ import {
   type EmailBodyEditorHandle,
 } from "@/components/email-body-editor";
 import { EmailSignaturePreview } from "@/components/email-signature-preview";
-import { IconEdit, IconMail, IconTrash, IconX } from "@/components/icons";
+import { IconEdit, IconMail, IconMinus, IconTrash, IconX } from "@/components/icons";
 import { useToast } from "@/components/toast";
 import { apiFetch } from "@/lib/api-client";
 import {
@@ -59,6 +59,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const toast = useToast();
   const [open, setOpen] = useState(false);
+  const [minimized, setMinimized] = useState(false);
   const [toEmail, setToEmail] = useState("");
   const [toName, setToName] = useState("");
   const [toQuery, setToQuery] = useState("");
@@ -81,6 +82,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
 
   const close = useCallback(() => {
     setOpen(false);
+    setMinimized(false);
     setHint("");
     setSuggestions([]);
     setShowSuggestions(false);
@@ -98,6 +100,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
     setFontFamily(DEFAULT_EMAIL_FONT);
     setPromptId("");
     setHint("");
+    setMinimized(false);
     setOpen(true);
   }, []);
 
@@ -308,32 +311,53 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
     <ComposeContext.Provider value={value}>
       {children}
       {open ? (
-        <div className="compose-backdrop">
+        <div className={`compose-backdrop${minimized ? " is-minimized" : ""}`}>
           <div
-            className="compose-window"
+            className={`compose-window${minimized ? " is-minimized" : ""}`}
             role="dialog"
-            aria-modal="true"
+            aria-modal={!minimized}
             aria-label="Nova mensagem"
           >
-            <header className="compose-header">
-              <strong>Nova mensagem</strong>
-              <button
-                type="button"
-                className="compose-icon-btn"
-                aria-label="Fechar"
-                onClick={close}
+            <header
+              className="compose-header"
+              onClick={() => setMinimized((v) => !v)}
+              title={minimized ? "Expandir" : "Minimizar"}
+            >
+              <strong>
+                {subject.trim() || "Nova mensagem"}
+              </strong>
+              <div
+                className="compose-header-actions"
+                onClick={(e) => e.stopPropagation()}
               >
-                <IconX size={16} />
-              </button>
+                <button
+                  type="button"
+                  className="compose-icon-btn"
+                  aria-label={minimized ? "Expandir" : "Minimizar"}
+                  title={minimized ? "Expandir" : "Minimizar"}
+                  onClick={() => setMinimized((v) => !v)}
+                >
+                  <IconMinus size={16} />
+                </button>
+                <button
+                  type="button"
+                  className="compose-icon-btn"
+                  aria-label="Fechar"
+                  onClick={close}
+                >
+                  <IconX size={16} />
+                </button>
+              </div>
             </header>
 
+            <div className="compose-window-body">
             <div className="compose-field compose-to" ref={toFieldRef}>
               <span className="compose-label">Para</span>
               <div className="compose-to-field">
                 <input
                   className="compose-input"
                   type="text"
-                  autoFocus
+                  autoFocus={!minimized}
                   autoComplete="off"
                   value={toQuery}
                   onChange={(e) => onToQueryChange(e.target.value)}
@@ -495,6 +519,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
                 </div>
               </div>
             </footer>
+            </div>
           </div>
         </div>
       ) : null}

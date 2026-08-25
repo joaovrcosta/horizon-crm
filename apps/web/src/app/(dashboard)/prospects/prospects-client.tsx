@@ -49,6 +49,7 @@ import {
   IconFilter,
   IconMail,
   IconMapPin,
+  IconMinus,
   IconPhone,
   IconPlus,
   IconTrash,
@@ -188,6 +189,7 @@ export default function ProspectsPage() {
   );
 
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailMinimized, setEmailMinimized] = useState(false);
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [emailPromptId, setEmailPromptId] = useState("");
   const [emailSubject, setEmailSubject] = useState("");
@@ -446,6 +448,7 @@ export default function ProspectsPage() {
     setEmailBody("");
     setEmailFontFamily(DEFAULT_EMAIL_FONT);
     setEmailClipboardHint("");
+    setEmailMinimized(false);
     setShowEmailModal(true);
     setLoadingPrompts(true);
     try {
@@ -1429,25 +1432,49 @@ export default function ProspectsPage() {
       ) : null}
 
       {showEmailModal && selected?.email ? (
-        <div className="compose-backdrop">
+        <div
+          className={`compose-backdrop${emailMinimized ? " is-minimized" : ""}`}
+        >
           <div
-            className="compose-window"
+            className={`compose-window${emailMinimized ? " is-minimized" : ""}`}
             role="dialog"
-            aria-modal="true"
+            aria-modal={!emailMinimized}
             aria-label="Nova mensagem"
           >
-            <header className="compose-header">
-              <strong>Nova mensagem</strong>
-              <button
-                type="button"
-                className="compose-icon-btn"
-                aria-label="Fechar"
-                onClick={() => setShowEmailModal(false)}
+            <header
+              className="compose-header"
+              onClick={() => setEmailMinimized((v) => !v)}
+              title={emailMinimized ? "Expandir" : "Minimizar"}
+            >
+              <strong>{emailSubject.trim() || "Nova mensagem"}</strong>
+              <div
+                className="compose-header-actions"
+                onClick={(e) => e.stopPropagation()}
               >
-                <IconX size={16} />
-              </button>
+                <button
+                  type="button"
+                  className="compose-icon-btn"
+                  aria-label={emailMinimized ? "Expandir" : "Minimizar"}
+                  title={emailMinimized ? "Expandir" : "Minimizar"}
+                  onClick={() => setEmailMinimized((v) => !v)}
+                >
+                  <IconMinus size={16} />
+                </button>
+                <button
+                  type="button"
+                  className="compose-icon-btn"
+                  aria-label="Fechar"
+                  onClick={() => {
+                    setEmailMinimized(false);
+                    setShowEmailModal(false);
+                  }}
+                >
+                  <IconX size={16} />
+                </button>
+              </div>
             </header>
 
+            <div className="compose-window-body">
             <div className="compose-field compose-to">
               <span className="compose-label">Para</span>
               <div className="compose-chip">
@@ -1574,13 +1601,17 @@ export default function ProspectsPage() {
                     type="button"
                     className="compose-icon-btn danger"
                     title="Descartar"
-                    onClick={() => setShowEmailModal(false)}
+                    onClick={() => {
+                      setEmailMinimized(false);
+                      setShowEmailModal(false);
+                    }}
                   >
                     <IconTrash size={16} />
                   </button>
                 </div>
               </div>
             </footer>
+            </div>
           </div>
         </div>
       ) : null}
