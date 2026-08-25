@@ -13,7 +13,7 @@ const visibilityEnum = z.enum(["PUBLIC", "PRIVATE"]);
 
 const createSchema = z.object({
   title: z.string().min(1).max(200),
-  content: z.string().min(1).max(20000),
+  content: z.string().min(1).max(50000),
   tags: z.array(z.string().max(40)).max(20).optional(),
   visibility: visibilityEnum.default("PRIVATE"),
 });

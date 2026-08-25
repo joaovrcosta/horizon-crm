@@ -1,9 +1,13 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import type { Prompt, PromptVisibility } from "@horizon/shared";
 import { useAuth } from "@/components/auth-provider";
-import { apiFetch } from "@/lib/api-client";
+import {
+  EmailBodyEditor,
+  EmailBodyToolbar,
+  type EmailBodyEditorHandle,
+} from "@/components/email-body-editor";
 import {
   IconCopy,
   IconEdit,
@@ -11,6 +15,12 @@ import {
   IconTrash,
 } from "@/components/icons";
 import { PromptsSkeleton } from "@/components/skeleton";
+import { apiFetch } from "@/lib/api-client";
+import {
+  DEFAULT_EMAIL_FONT,
+  htmlToPlainText,
+  plainTextToEditorHtml,
+} from "@/lib/email-body";
 import {
   formatPromptVariableTokens,
   PROMPT_TEMPLATE_VARIABLE_HINTS,
@@ -35,6 +45,7 @@ export default function PromptsPage() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const contentEditorRef = useRef<EmailBodyEditorHandle>(null);
 
   async function load() {
     setLoading(true);
@@ -80,7 +91,7 @@ export default function PromptsPage() {
     setEditing(prompt);
     setForm({
       title: prompt.title,
-      content: prompt.content,
+      content: plainTextToEditorHtml(prompt.content),
       tags: prompt.tags.join(", "),
       visibility: prompt.visibility,
     });
@@ -90,6 +101,10 @@ export default function PromptsPage() {
   async function savePrompt(event: FormEvent) {
     event.preventDefault();
     setError("");
+    if (!htmlToPlainText(form.content)) {
+      setError("Preencha o conteúdo do template.");
+      return;
+    }
     setSaving(true);
     try {
       const tags = form.tags
@@ -99,7 +114,7 @@ export default function PromptsPage() {
 
       const payload = {
         title: form.title,
-        content: form.content,
+        content: form.content.trim(),
         tags,
         visibility: form.visibility,
       };
@@ -109,7 +124,9 @@ export default function PromptsPage() {
           method: "PATCH",
           body: payload,
         });
-        setPrompts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+        setPrompts((prev) =>
+          prev.map((p) => (p.id === updated.id ? updated : p)),
+        );
       } else {
         const created = await apiFetch<Prompt>("/prompts", {
           method: "POST",
@@ -129,7 +146,9 @@ export default function PromptsPage() {
   }
 
   async function copyPrompt(prompt: Prompt) {
-    await navigator.clipboard.writeText(prompt.content);
+    await navigator.clipboard.writeText(
+      htmlToPlainText(prompt.content) || prompt.content,
+    );
     setCopiedId(prompt.id);
     setTimeout(() => setCopiedId(null), 1500);
   }
@@ -177,13 +196,19 @@ export default function PromptsPage() {
             <option value="PUBLIC">Só públicos</option>
             <option value="PRIVATE">Só privados</option>
           </select>
-          <button className="btn btn-secondary" type="button" onClick={() => void load()}>
+          <button
+            className="btn btn-secondary"
+            type="button"
+            onClick={() => void load()}
+          >
             Buscar
           </button>
         </div>
       </div>
 
-      {error ? <p style={{ color: "#b91c1c" }}>{error}</p> : null}
+      {error && !showModal ? (
+        <p style={{ color: "#b91c1c" }}>{error}</p>
+      ) : null}
 
       <div className="prompt-grid">
         {prompts.map((prompt) => (
@@ -205,7 +230,9 @@ export default function PromptsPage() {
                 </div>
               </div>
             </header>
-            <div className="prompt-content">{prompt.content}</div>
+            <div className="prompt-content">
+              {htmlToPlainText(prompt.content) || prompt.content}
+            </div>
             <div className="prompt-actions">
               <button
                 className="btn btn-primary"
@@ -248,8 +275,9 @@ export default function PromptsPage() {
 
       {showModal ? (
         <div className="modal-backdrop">
-          <form className="modal" onSubmit={savePrompt}>
+          <form className="modal modal-wide" onSubmit={savePrompt}>
             <h2>{editing ? "Editar template" : "Novo template"}</h2>
+            {error ? <p className="form-error">{error}</p> : null}
             <div className="form-grid">
               <label>
                 Título *
@@ -259,20 +287,33 @@ export default function PromptsPage() {
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                 />
               </label>
-              <label>
-                Conteúdo (texto ou link) *
-                <textarea
-                  required
-                  rows={8}
-                  value={form.content}
-                  onChange={(e) => setForm({ ...form, content: e.target.value })}
-                  placeholder={
-                    "Olá {{nome}},\n\nTudo bem? Vi que você atua em {{categoria}}…"
-                  }
-                />
-              </label>
+              <div className="template-content-field">
+                <div className="template-content-label-row">
+                  <span>Conteúdo *</span>
+                  <EmailBodyToolbar
+                    showFont={false}
+                    onInsertLink={() => contentEditorRef.current?.insertLink()}
+                  />
+                </div>
+                <div className="template-content-editor">
+                  <EmailBodyEditor
+                    ref={contentEditorRef}
+                    value={form.content}
+                    onChange={(content) => setForm({ ...form, content })}
+                    fontFamily={DEFAULT_EMAIL_FONT}
+                    placeholder={
+                      "Olá {{nome}},\n\nTudo bem? Vi que você atua em {{categoria}}…"
+                    }
+                  />
+                </div>
+                <p className="field-hint">
+                  Selecione um texto e clique em Link para inserir um hyperlink.
+                </p>
+              </div>
               <details className="template-vars-dropdown">
-                <summary>Variáveis disponíveis para personalizar o e-mail</summary>
+                <summary>
+                  Variáveis disponíveis para personalizar o e-mail
+                </summary>
                 <p className="field-hint">
                   Ao enviar e-mail, estas variáveis são preenchidas
                   automaticamente. Use <code>{"{{consultantName}}"}</code> para
@@ -315,7 +356,10 @@ export default function PromptsPage() {
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={() => setShowModal(false)}
+                onClick={() => {
+                  setShowModal(false);
+                  setError("");
+                }}
               >
                 Cancelar
               </button>

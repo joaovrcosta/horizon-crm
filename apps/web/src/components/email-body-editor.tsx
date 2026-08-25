@@ -30,22 +30,23 @@ export const EmailBodyEditor = forwardRef<EmailBodyEditorHandle, EditorProps>(
     },
     ref,
   ) {
-    const editorRef = useRef<HTMLDivElement>(null);
-    const lastExternalRef = useRef(value);
+  const editorRef = useRef<HTMLDivElement>(null);
+  // null = ainda não sincronizou o DOM (evita pular o conteúdo ao abrir o modal)
+  const lastExternalRef = useRef<string | null>(null);
 
-    useEffect(() => {
-      const el = editorRef.current;
-      if (!el) return;
-      if (value !== lastExternalRef.current) {
-        const next = plainTextToEditorHtml(value);
-        if (el.innerHTML !== next) {
-          el.innerHTML = next;
-        }
-        lastExternalRef.current = value;
+  useEffect(() => {
+    const el = editorRef.current;
+    if (!el) return;
+    if (value !== lastExternalRef.current) {
+      const next = plainTextToEditorHtml(value);
+      if (el.innerHTML !== next) {
+        el.innerHTML = next;
       }
-      const text = (el.textContent || "").replace(/\u00a0/g, " ").trim();
-      el.dataset.empty = text ? "false" : "true";
-    }, [value]);
+      lastExternalRef.current = value;
+    }
+    const text = (el.textContent || "").replace(/\u00a0/g, " ").trim();
+    el.dataset.empty = text ? "false" : "true";
+  }, [value]);
 
     function emitChange() {
       const el = editorRef.current;
@@ -123,32 +124,36 @@ export const EmailBodyEditor = forwardRef<EmailBodyEditorHandle, EditorProps>(
 );
 
 type ToolbarProps = {
-  fontFamily: string;
-  onFontFamilyChange: (font: string) => void;
+  fontFamily?: string;
+  onFontFamilyChange?: (font: string) => void;
   onInsertLink: () => void;
+  showFont?: boolean;
 };
 
 export function EmailBodyToolbar({
-  fontFamily,
+  fontFamily = DEFAULT_EMAIL_FONT,
   onFontFamilyChange,
   onInsertLink,
+  showFont = true,
 }: ToolbarProps) {
   return (
     <div className="compose-editor-toolbar" role="toolbar" aria-label="Formatação">
-      <label className="compose-font-select">
-        <span className="sr-only">Fonte</span>
-        <select
-          value={fontFamily}
-          onChange={(e) => onFontFamilyChange(e.target.value)}
-          title="Fonte"
-        >
-          {EMAIL_FONTS.map((font) => (
-            <option key={font.label} value={font.value}>
-              {font.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      {showFont && onFontFamilyChange ? (
+        <label className="compose-font-select">
+          <span className="sr-only">Fonte</span>
+          <select
+            value={fontFamily}
+            onChange={(e) => onFontFamilyChange(e.target.value)}
+            title="Fonte"
+          >
+            {EMAIL_FONTS.map((font) => (
+              <option key={font.label} value={font.value}>
+                {font.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
       <button
         type="button"
         className="compose-editor-tool"

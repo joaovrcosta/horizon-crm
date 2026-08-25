@@ -1864,6 +1864,38 @@ html[data-theme="light"] .signature-preview .signature-react-email a * {
   white-space: nowrap;
 }
 
+.template-content-field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.template-content-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--text-small);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.template-content-editor {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  padding: var(--space-3);
+  min-height: 200px;
+}
+
+.template-content-editor .compose-editor,
+.template-content-editor .compose-body-editor {
+  min-height: 160px;
+}
+
+.template-content-editor .compose-body-editor a {
+  color: var(--brand);
+}
+
 .template-vars-dropdown {
   grid-column: 1 / -1;
   border-radius: var(--radius-md);
