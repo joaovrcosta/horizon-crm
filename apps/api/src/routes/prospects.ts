@@ -7,11 +7,14 @@ import { prisma } from "../lib/prisma";
 import {
   assertNoDuplicate,
   emptyToNull,
+  endOfDay,
   endOfToday,
   logStatusChange,
   normalizeUrl,
   normalizeWebsiteUrl,
+  parseDateOnly,
   serializeProspect,
+  startOfDay,
   startOfToday,
 } from "../lib/prospects";
 import {
@@ -145,6 +148,14 @@ router.get("/", async (req, res, next) => {
         country: z.string().optional(),
         category: z.string().optional(),
         language: z.string().optional(),
+        createdFrom: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
+        createdTo: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
       })
       .parse(req.query);
 
@@ -184,6 +195,25 @@ router.get("/", async (req, res, next) => {
               }
             : {};
 
+    const createdFrom = query.createdFrom
+      ? startOfDay(parseDateOnly(query.createdFrom))
+      : null;
+    const createdTo = query.createdTo
+      ? endOfDay(parseDateOnly(query.createdTo))
+      : null;
+    if (createdFrom && createdTo && createdFrom.getTime() > createdTo.getTime()) {
+      throw new AppError(400, "A data inicial não pode ser maior que a final.");
+    }
+    const createdAtFilter =
+      createdFrom || createdTo
+        ? {
+            createdAt: {
+              ...(createdFrom ? { gte: createdFrom } : {}),
+              ...(createdTo ? { lte: createdTo } : {}),
+            },
+          }
+        : {};
+
     const prospects = await prisma.prospect.findMany({
       where: {
         ...(query.status ? { status: query.status as ProspectStatus } : {}),
@@ -210,6 +240,7 @@ router.get("/", async (req, res, next) => {
           : {}),
         ...(query.language ? { languages: { hasSome: languageValues } } : {}),
         ...dueFilter,
+        ...createdAtFilter,
         ...(query.q
           ? {
               OR: [

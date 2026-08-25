@@ -868,6 +868,34 @@ html:not([data-theme="light"]) .sidebar {
   color: var(--text);
 }
 
+.filters-date-group {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.filters-date-group > span {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-subtle);
+}
+
+.filters-date-range {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.filters-panel input[type="date"] {
+  width: 100%;
+  min-width: 0;
+  padding: 0.5rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 0.78rem;
+}
+
 .filters-panel-actions {
   display: flex;
   gap: 0.5rem;
@@ -3842,6 +3870,7 @@ html[data-theme="light"] .mail-search input {
   font-weight: 700;
   color: var(--text);
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .metric-pill {

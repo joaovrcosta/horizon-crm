@@ -19,10 +19,11 @@ import {
 } from "@/components/icons";
 import { DashboardSkeleton } from "@/components/skeleton";
 import { StatusChart } from "@/components/status-chart";
+import { useCountUp } from "@/hooks/use-count-up";
 
-function formatSigned(value: number) {
-  if (value > 0) return `+${value}`;
-  return `${value}`;
+function CountUpValue({ value }: { value: number }) {
+  const displayed = useCountUp(value);
+  return <>{displayed.toLocaleString("pt-BR")}</>;
 }
 
 function TrendPill({
@@ -143,7 +144,9 @@ export default function DashboardPage() {
                 </span>
               </div>
               <div className="metric-value-row">
-                <strong>{stats.total}</strong>
+                <strong>
+                  <CountUpValue value={stats.total} />
+                </strong>
                 <TrendPill trend={stats.trends.total} />
               </div>
               <p className="metric-hint">
@@ -163,7 +166,9 @@ export default function DashboardPage() {
                 </span>
               </div>
               <div className="metric-value-row">
-                <strong>{stats.overdueCount}</strong>
+                <strong>
+                  <CountUpValue value={stats.overdueCount} />
+                </strong>
                 <TrendPill trend={stats.trends.overdue} invert />
               </div>
               <p className="metric-hint">
@@ -183,7 +188,9 @@ export default function DashboardPage() {
                 </span>
               </div>
               <div className="metric-value-row">
-                <strong>{stats.dueTodayCount}</strong>
+                <strong>
+                  <CountUpValue value={stats.dueTodayCount} />
+                </strong>
                 <TrendPill trend={stats.trends.dueToday} />
               </div>
               <p className="metric-hint">
@@ -203,7 +210,9 @@ export default function DashboardPage() {
                 </span>
               </div>
               <div className="metric-value-row">
-                <strong>{stats.wonThisMonth}</strong>
+                <strong>
+                  <CountUpValue value={stats.wonThisMonth} />
+                </strong>
                 <TrendPill trend={stats.trends.wonThisMonth} />
               </div>
               <p className="metric-hint">

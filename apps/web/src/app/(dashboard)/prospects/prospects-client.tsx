@@ -172,6 +172,8 @@ export default function ProspectsPage() {
   const [countryFilter, setCountryFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [languageFilter, setLanguageFilter] = useState("");
+  const [createdFromFilter, setCreatedFromFilter] = useState("");
+  const [createdToFilter, setCreatedToFilter] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [listTab, setListTab] = useState<ProspectStatus | "FILTER">("NEW");
   const filtersRef = useRef<HTMLDivElement>(null);
@@ -258,6 +260,8 @@ export default function ProspectsPage() {
       if (countryFilter) params.set("country", countryFilter);
       if (categoryFilter) params.set("category", categoryFilter);
       if (languageFilter) params.set("language", languageFilter);
+      if (createdFromFilter) params.set("createdFrom", createdFromFilter);
+      if (createdToFilter) params.set("createdTo", createdToFilter);
       const qs = params.toString();
       const data = await apiFetch<Prospect[]>(
         `/prospects${qs ? `?${qs}` : ""}`,
@@ -281,7 +285,7 @@ export default function ProspectsPage() {
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, dueFilter, assigneeFilter, countryFilter, categoryFilter, languageFilter]);
+  }, [statusFilter, dueFilter, assigneeFilter, countryFilter, categoryFilter, languageFilter, createdFromFilter, createdToFilter]);
 
   useEffect(() => {
     if (!filtersOpen) return;
@@ -313,14 +317,16 @@ export default function ProspectsPage() {
     setDetailTab("overview");
   }, [selectedId]);
 
-  const activeFilterCount = [
-    statusFilter,
-    dueFilter,
-    assigneeFilter,
-    countryFilter,
-    categoryFilter,
-    languageFilter,
-  ].filter(Boolean).length;
+  const activeFilterCount =
+    [
+      statusFilter,
+      dueFilter,
+      assigneeFilter,
+      countryFilter,
+      categoryFilter,
+      languageFilter,
+    ].filter(Boolean).length +
+    (createdFromFilter || createdToFilter ? 1 : 0);
   const hasActiveFilters = activeFilterCount > 0;
 
   useEffect(() => {
@@ -757,6 +763,29 @@ export default function ProspectsPage() {
                       <option value="upcoming">Próximos</option>
                     </select>
                   </label>
+                  <div className="filters-date-group">
+                    <span>Data de cadastro</span>
+                    <div className="filters-date-range">
+                      <label>
+                        De
+                        <input
+                          type="date"
+                          value={createdFromFilter}
+                          max={createdToFilter || undefined}
+                          onChange={(e) => setCreatedFromFilter(e.target.value)}
+                        />
+                      </label>
+                      <label>
+                        Até
+                        <input
+                          type="date"
+                          value={createdToFilter}
+                          min={createdFromFilter || undefined}
+                          onChange={(e) => setCreatedToFilter(e.target.value)}
+                        />
+                      </label>
+                    </div>
+                  </div>
                   <label>
                     Responsável
                     <select
@@ -814,6 +843,8 @@ export default function ProspectsPage() {
                         setCountryFilter("");
                         setCategoryFilter("");
                         setLanguageFilter("");
+                        setCreatedFromFilter("");
+                        setCreatedToFilter("");
                       }}
                     >
                       Limpar
