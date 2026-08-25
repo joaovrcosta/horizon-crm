@@ -14,6 +14,8 @@ import {
   normalizeWebsiteUrl,
   parseDateOnly,
   serializeProspect,
+  favoritedProspectIds,
+  isProspectFavorited,
   startOfDay,
   startOfToday,
 } from "../lib/prospects";
@@ -290,8 +292,13 @@ router.get("/", async (req, res, next) => {
       orderBy: [{ nextContactAt: "asc" }, { updatedAt: "desc" }],
     });
 
+    const favoriteIds = await favoritedProspectIds(
+      req.user!.id,
+      prospects.map((p) => p.id),
+    );
+
     res.json({
-      data: prospects.map(serializeProspect),
+      data: prospects.map((p) => serializeProspect(p, favoriteIds.has(p.id))),
     } satisfies ApiResponse<Prospect[]>);
   } catch (error) {
     next(error);
@@ -308,8 +315,9 @@ router.get("/:id", async (req, res, next) => {
     if (!prospect) {
       throw new AppError(404, "Prospect não encontrado");
     }
+    const favorited = await isProspectFavorited(req.user!.id, prospect.id);
     res.json({
-      data: serializeProspect(prospect),
+      data: serializeProspect(prospect, favorited),
     } satisfies ApiResponse<Prospect>);
   } catch (error) {
     next(error);
@@ -375,7 +383,7 @@ router.post("/", async (req, res, next) => {
     });
 
     res.status(201).json({
-      data: serializeProspect(prospect),
+      data: serializeProspect(prospect, false),
     } satisfies ApiResponse<Prospect>);
   } catch (error) {
     next(error);
@@ -484,8 +492,59 @@ router.patch("/:id", async (req, res, next) => {
       });
     }
 
+    const favorited = await isProspectFavorited(req.user!.id, prospect.id);
     res.json({
-      data: serializeProspect(prospect),
+      data: serializeProspect(prospect, favorited),
+    } satisfies ApiResponse<Prospect>);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put("/:id/favorite", async (req, res, next) => {
+  try {
+    const id = z.string().cuid().parse(req.params.id);
+    const prospect = await prisma.prospect.findUnique({
+      where: { id },
+      include: includeAssignee,
+    });
+    if (!prospect) {
+      throw new AppError(404, "Prospect não encontrado");
+    }
+
+    await prisma.prospectFavorite.upsert({
+      where: {
+        userId_prospectId: { userId: req.user!.id, prospectId: id },
+      },
+      create: { userId: req.user!.id, prospectId: id },
+      update: {},
+    });
+
+    res.json({
+      data: serializeProspect(prospect, true),
+    } satisfies ApiResponse<Prospect>);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.delete("/:id/favorite", async (req, res, next) => {
+  try {
+    const id = z.string().cuid().parse(req.params.id);
+    const prospect = await prisma.prospect.findUnique({
+      where: { id },
+      include: includeAssignee,
+    });
+    if (!prospect) {
+      throw new AppError(404, "Prospect não encontrado");
+    }
+
+    await prisma.prospectFavorite.deleteMany({
+      where: { userId: req.user!.id, prospectId: id },
+    });
+
+    res.json({
+      data: serializeProspect(prospect, false),
     } satisfies ApiResponse<Prospect>);
   } catch (error) {
     next(error);

@@ -97,6 +97,7 @@ export type Prospect = {
   createdById: string;
   createdAt: string;
   updatedAt: string;
+  favorited: boolean;
 };
 
 export type ProspectActivity = {

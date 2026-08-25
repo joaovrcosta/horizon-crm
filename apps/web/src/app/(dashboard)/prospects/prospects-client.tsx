@@ -28,6 +28,7 @@ import { CountryFlag } from "@/components/country-flag";
 import { CountrySelect } from "@/components/country-select";
 import { TagInput } from "@/components/tag-input";
 import { SiteQualityMeter } from "@/components/site-quality";
+import { FavoriteButton } from "@/components/favorite-button";
 import { ProspectsListSkeleton } from "@/components/skeleton";
 import { useToast } from "@/components/toast";
 import { fireConfetti } from "@/lib/confetti";
@@ -162,6 +163,8 @@ const LIST_TABS: Array<{
   { value: "LOST", label: "Perdidos", empty: "Nenhum cliente perdido." },
 ];
 
+type ListTab = ProspectStatus | "FILTER" | "FAVORITE";
+
 export default function ProspectsPage() {
   const { user } = useAuth();
   const toast = useToast();
@@ -181,7 +184,7 @@ export default function ProspectsPage() {
   const [createdFromFilter, setCreatedFromFilter] = useState("");
   const [createdToFilter, setCreatedToFilter] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [listTab, setListTab] = useState<ProspectStatus | "FILTER">("NEW");
+  const [listTab, setListTab] = useState<ListTab>("NEW");
   const filtersRef = useRef<HTMLDivElement>(null);
   const hadFiltersRef = useRef(false);
   const emailBodyEditorRef = useRef<EmailBodyEditorHandle>(null);
@@ -429,13 +432,38 @@ export default function ProspectsPage() {
         body: patch,
       });
       setProspects((prev) =>
-        prev.map((p) => (p.id === updated.id ? updated : p)),
+        prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)),
       );
-      if (typeof patch.status === "string") {
+      if (typeof patch.status === "string" && listTab !== "FAVORITE") {
         setListTab(patch.status as ProspectStatus);
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao atualizar");
+    }
+  }
+
+  async function toggleFavorite(prospect: Prospect) {
+    const next = !prospect.favorited;
+    setProspects((prev) =>
+      prev.map((p) => (p.id === prospect.id ? { ...p, favorited: next } : p)),
+    );
+    try {
+      const updated = await apiFetch<Prospect>(
+        `/prospects/${prospect.id}/favorite`,
+        { method: next ? "PUT" : "DELETE" },
+      );
+      setProspects((prev) =>
+        prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)),
+      );
+    } catch (err) {
+      setProspects((prev) =>
+        prev.map((p) =>
+          p.id === prospect.id ? { ...p, favorited: prospect.favorited } : p,
+        ),
+      );
+      toast.error(
+        err instanceof Error ? err.message : "Erro ao atualizar favorito",
+      );
     }
   }
 
@@ -645,18 +673,27 @@ export default function ProspectsPage() {
     }
   }, [categoryPrompts, emailPromptId]);
 
+  const favoriteCount = useMemo(
+    () => prospects.filter((p) => p.favorited).length,
+    [prospects],
+  );
+
   const listed =
     listTab === "FILTER"
       ? prospects
-      : prospects.filter((p) => p.status === listTab);
+      : listTab === "FAVORITE"
+        ? prospects.filter((p) => p.favorited)
+        : prospects.filter((p) => p.status === listTab);
   const activeListTab =
     listTab === "FILTER"
       ? { label: "Filtro", count: prospects.length }
-      : {
-          label:
-            LIST_TABS.find((tab) => tab.value === listTab)?.label ?? "Clientes",
-          count: tabCounts[listTab],
-        };
+      : listTab === "FAVORITE"
+        ? { label: "Favoritos", count: favoriteCount }
+        : {
+            label:
+              LIST_TABS.find((tab) => tab.value === listTab)?.label ?? "Clientes",
+            count: tabCounts[listTab],
+          };
   const wa = selected
     ? toWhatsAppLink(selected.whatsapp || selected.phone)
     : null;
@@ -666,17 +703,20 @@ export default function ProspectsPage() {
 
   function renderListItem(p: Prospect, compact = false) {
     return (
-      <button
+      <div
         key={p.id}
-        type="button"
-        className={`list-item${selectedId === p.id ? " selected" : ""}${
-          p.status === "CONTACTED" ? " is-contacted" : ""
-        }`}
-        onClick={() => {
-          setSelectedId(p.id);
-          setMobileDetailOpen(true);
-        }}
+        className={`list-item-wrap${selectedId === p.id ? " selected" : ""}`}
       >
+        <button
+          type="button"
+          className={`list-item${selectedId === p.id ? " selected" : ""}${
+            p.status === "CONTACTED" ? " is-contacted" : ""
+          }`}
+          onClick={() => {
+            setSelectedId(p.id);
+            setMobileDetailOpen(true);
+          }}
+        >
         {p.country ? (
           <CountryFlag code={p.country} className="list-item-flag" />
         ) : null}
@@ -710,7 +750,13 @@ export default function ProspectsPage() {
             </span>
           </div>
         ) : null}
-      </button>
+        </button>
+        <FavoriteButton
+          className="list-item-fav"
+          favorited={Boolean(p.favorited)}
+          onToggle={() => void toggleFavorite(p)}
+        />
+      </div>
     );
   }
 
@@ -902,6 +948,18 @@ export default function ProspectsPage() {
               <span className="count">{prospects.length}</span>
             </button>
           ) : null}
+          <button
+            type="button"
+            role="tab"
+            aria-selected={listTab === "FAVORITE"}
+            className={`list-pane-tab tab-favorite${
+              listTab === "FAVORITE" ? " active" : ""
+            }`}
+            onClick={() => setListTab("FAVORITE")}
+          >
+            Favoritos
+            <span className="count">{favoriteCount}</span>
+          </button>
           {LIST_TABS.map((tab) => (
             <button
               key={tab.value}
@@ -943,7 +1001,9 @@ export default function ProspectsPage() {
             <p className="list-empty">
               {listTab === "FILTER"
                 ? "Nenhum cliente corresponde aos filtros."
-                : LIST_TABS.find((tab) => tab.value === listTab)?.empty}
+                : listTab === "FAVORITE"
+                  ? "Nenhum cliente favoritado."
+                  : LIST_TABS.find((tab) => tab.value === listTab)?.empty}
             </p>
           ) : null}
         </div>
@@ -998,6 +1058,11 @@ export default function ProspectsPage() {
             <div className="detail-section">
               <h3>
                 {selected.name}
+                <FavoriteButton
+                  className="detail-favorite"
+                  favorited={Boolean(selected.favorited)}
+                  onToggle={() => void toggleFavorite(selected)}
+                />
                 {isOverdue(selected.nextContactAt, selected.status) ? (
                   <span
                     className="status-pill status-LOST"

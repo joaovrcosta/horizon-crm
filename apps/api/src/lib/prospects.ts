@@ -37,7 +37,10 @@ export type ProspectWithAssignee = {
   assignee?: { id: string; name: string } | null;
 };
 
-export function serializeProspect(p: ProspectWithAssignee): Prospect {
+export function serializeProspect(
+  p: ProspectWithAssignee,
+  favorited = false,
+): Prospect {
   return {
     id: p.id,
     name: p.name,
@@ -61,7 +64,28 @@ export function serializeProspect(p: ProspectWithAssignee): Prospect {
     createdById: p.createdById,
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
+    favorited,
   };
+}
+
+export async function favoritedProspectIds(
+  userId: string,
+  prospectIds: string[],
+) {
+  if (prospectIds.length === 0) return new Set<string>();
+  const rows = await prisma.prospectFavorite.findMany({
+    where: { userId, prospectId: { in: prospectIds } },
+    select: { prospectId: true },
+  });
+  return new Set(rows.map((row) => row.prospectId));
+}
+
+export async function isProspectFavorited(userId: string, prospectId: string) {
+  const row = await prisma.prospectFavorite.findUnique({
+    where: { userId_prospectId: { userId, prospectId } },
+    select: { userId: true },
+  });
+  return Boolean(row);
 }
 
 export async function assertNoDuplicate(params: {

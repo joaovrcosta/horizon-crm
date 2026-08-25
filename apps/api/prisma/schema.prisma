@@ -87,6 +87,7 @@ model User {
   emailSignature    EmailSignature?
   sentEmails        SentEmail[]
   receivedEmails    ReceivedEmail[]
+  prospectFavorites ProspectFavorite[]
 
   @@index([roleId])
 }
@@ -130,6 +131,7 @@ model Prospect {
   activities     ProspectActivity[]
   sentEmails     SentEmail[]
   receivedEmails ReceivedEmail[]
+  favorites      ProspectFavorite[]
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 
@@ -139,6 +141,18 @@ model Prospect {
   @@index([nextContactAt])
   @@index([phoneDigits])
   @@index([mapsUrl])
+}
+
+model ProspectFavorite {
+  userId     String
+  prospectId String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prospect   Prospect @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@id([userId, prospectId])
+  @@index([userId, createdAt])
+  @@index([prospectId])
 }
 
 model ProspectTag {

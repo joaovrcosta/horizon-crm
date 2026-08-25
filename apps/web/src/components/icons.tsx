@@ -345,3 +345,19 @@ export function IconSiteQuality({
     </svg>
   );
 }
+
+export function IconStar({
+  filled = false,
+  size = 16,
+  ...props
+}: IconProps & { filled?: boolean }) {
+  return (
+    <svg
+      {...base({ size, ...props })}
+      fill={filled ? "currentColor" : "none"}
+      stroke="currentColor"
+    >
+      <path d="M12 3.2 14.4 8.3l5.6.6-4.2 3.8 1.2 5.5L12 15.8 6.9 18.2l1.2-5.5-4.2-3.8 5.6-.6L12 3.2z" />
+    </svg>
+  );
+}
