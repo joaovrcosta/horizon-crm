@@ -15,6 +15,7 @@ import {
 } from "@/components/icons";
 import { useToast } from "@/components/toast";
 import { MailListSkeleton, MailSkeleton } from "@/components/skeleton";
+import { apiFetch } from "@/lib/api-client";
 import { htmlToPlainText, prepareEmailMessageHtml } from "@/lib/email-body";
 import { formatDateTime } from "@/lib/prospect-utils";
 
