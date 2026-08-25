@@ -16,6 +16,7 @@ import vaultsRoutes from "./routes/vaults";
 import settingsRoutes from "./routes/settings";
 import statsRoutes from "./routes/stats";
 import usersRoutes from "./routes/users";
+import resendWebhookRoutes from "./routes/webhooks-resend";
 
 export function createApp() {
   const app = express();
@@ -42,6 +43,11 @@ export function createApp() {
       },
       credentials: true,
     }),
+  );
+  app.use(
+    "/webhooks/resend",
+    express.raw({ type: "application/json", limit: "1mb" }),
+    resendWebhookRoutes,
   );
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());

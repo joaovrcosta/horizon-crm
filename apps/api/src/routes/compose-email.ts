@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
-import type { ApiResponse, EmailSignature, SentEmail } from "@horizon/shared";
+import type { ApiResponse, EmailSignature, MailboxItem, SentEmail } from "@horizon/shared";
 import { DEFAULT_EMAIL_REPLY_TO } from "@horizon/shared";
 import { AppError } from "../lib/errors";
 import { prisma } from "../lib/prisma";
@@ -99,7 +99,91 @@ const sentInclude = {
   prospect: { select: { name: true } },
 } as const;
 
-function isMissingSentEmailTable(error: unknown) {
+const receivedInclude = {
+  user: { select: { name: true } },
+  prospect: { select: { name: true } },
+} as const;
+
+function mailboxId(direction: "sent" | "received", id: string) {
+  return `${direction}:${id}`;
+}
+
+function parseMailboxId(value: string): { direction: "sent" | "received"; id: string } | null {
+  const match = value.match(/^(sent|received):(.+)$/);
+  if (!match) return null;
+  return { direction: match[1] as "sent" | "received", id: match[2]! };
+}
+
+function serializeMailboxFromSent(row: {
+  id: string;
+  userId: string;
+  prospectId: string | null;
+  toEmail: string;
+  toName: string | null;
+  subject: string;
+  body: string;
+  replyTo: string | null;
+  providerId: string | null;
+  createdAt: Date;
+  user: { name: string };
+  prospect: { name: string } | null;
+}): MailboxItem {
+  return {
+    id: mailboxId("sent", row.id),
+    direction: "sent",
+    isReply: false,
+    userId: row.userId,
+    userName: row.user.name,
+    prospectId: row.prospectId,
+    prospectName: row.prospect?.name ?? row.toName,
+    fromEmail: row.replyTo ?? "",
+    fromName: row.user.name,
+    toEmail: row.toEmail,
+    toName: row.toName,
+    subject: row.subject,
+    body: row.body,
+    replyTo: row.replyTo,
+    providerId: row.providerId,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+function serializeMailboxFromReceived(row: {
+  id: string;
+  userId: string | null;
+  prospectId: string | null;
+  fromEmail: string;
+  fromName: string | null;
+  toEmail: string;
+  subject: string;
+  body: string;
+  isReply: boolean;
+  providerId: string;
+  createdAt: Date;
+  user: { name: string } | null;
+  prospect: { name: string } | null;
+}): MailboxItem {
+  return {
+    id: mailboxId("received", row.id),
+    direction: "received",
+    isReply: row.isReply,
+    userId: row.userId,
+    userName: row.user?.name ?? null,
+    prospectId: row.prospectId,
+    prospectName: row.prospect?.name ?? row.fromName,
+    fromEmail: row.fromEmail,
+    fromName: row.fromName,
+    toEmail: row.toEmail,
+    toName: null,
+    subject: row.subject,
+    body: row.body,
+    replyTo: row.toEmail,
+    providerId: row.providerId,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+function isMissingMailboxTable(error: unknown) {
   return (
     error instanceof Prisma.PrismaClientKnownRequestError &&
     (error.code === "P2021" || error.code === "P2022")
@@ -196,7 +280,7 @@ async function backfillFromActivities(userId: string) {
 
 router.use(requireAuth);
 
-/** GET /emails — lista e-mails enviados */
+/** GET /emails — lista enviados e respostas recebidas */
 router.get("/", async (req, res, next) => {
   try {
     const query = listSchema.parse(req.query);
@@ -207,40 +291,76 @@ router.get("/", async (req, res, next) => {
     });
 
     const q = query.q?.trim();
-    const rows = await prisma.sentEmail.findMany({
-      where: {
-        ...(q
-          ? {
-              OR: [
-                { toEmail: { contains: q, mode: "insensitive" } },
-                { toName: { contains: q, mode: "insensitive" } },
-                { subject: { contains: q, mode: "insensitive" } },
-                { body: { contains: q, mode: "insensitive" } },
-                {
-                  prospect: {
-                    name: { contains: q, mode: "insensitive" },
-                  },
-                },
-              ],
-            }
-          : {}),
-      },
-      include: sentInclude,
-      orderBy: { createdAt: "desc" },
-      take: query.limit,
-    });
+    const sentWhere = q
+      ? {
+          OR: [
+            { toEmail: { contains: q, mode: "insensitive" as const } },
+            { toName: { contains: q, mode: "insensitive" as const } },
+            { subject: { contains: q, mode: "insensitive" as const } },
+            { body: { contains: q, mode: "insensitive" as const } },
+            {
+              prospect: {
+                name: { contains: q, mode: "insensitive" as const },
+              },
+            },
+          ],
+        }
+      : {};
+    const receivedWhere = q
+      ? {
+          OR: [
+            { fromEmail: { contains: q, mode: "insensitive" as const } },
+            { fromName: { contains: q, mode: "insensitive" as const } },
+            { toEmail: { contains: q, mode: "insensitive" as const } },
+            { subject: { contains: q, mode: "insensitive" as const } },
+            { body: { contains: q, mode: "insensitive" as const } },
+            {
+              prospect: {
+                name: { contains: q, mode: "insensitive" as const },
+              },
+            },
+          ],
+        }
+      : {};
+
+    const [sentRows, receivedRows] = await Promise.all([
+      prisma.sentEmail.findMany({
+        where: sentWhere,
+        include: sentInclude,
+        orderBy: { createdAt: "desc" },
+        take: query.limit,
+      }),
+      prisma.receivedEmail
+        .findMany({
+          where: receivedWhere,
+          include: receivedInclude,
+          orderBy: { createdAt: "desc" },
+          take: query.limit,
+        })
+        .catch((error) => {
+          if (isMissingMailboxTable(error)) return [];
+          throw error;
+        }),
+    ]);
+
+    const items = [
+      ...sentRows.map(serializeMailboxFromSent),
+      ...receivedRows.map(serializeMailboxFromReceived),
+    ]
+      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+      .slice(0, query.limit);
 
     res.json({
-      data: rows.map(serializeSentEmail),
-    } satisfies ApiResponse<SentEmail[]>);
+      data: items,
+    } satisfies ApiResponse<MailboxItem[]>);
   } catch (error) {
     if (error instanceof z.ZodError) {
       next(new AppError(400, error.issues[0]?.message ?? "Parâmetros inválidos"));
       return;
     }
-    if (isMissingSentEmailTable(error)) {
-      console.error("Tabela SentEmail ausente. Rode prisma migrate deploy.");
-      res.json({ data: [] } satisfies ApiResponse<SentEmail[]>);
+    if (isMissingMailboxTable(error)) {
+      console.error("Tabela de e-mails ausente. Rode prisma migrate deploy.");
+      res.json({ data: [] } satisfies ApiResponse<MailboxItem[]>);
       return;
     }
     next(error);
@@ -250,17 +370,29 @@ router.get("/", async (req, res, next) => {
 /** GET /emails/:id */
 router.get("/:id", async (req, res, next) => {
   try {
-    const id = z.string().cuid().parse(req.params.id);
+    const rawId = z.string().min(1).parse(req.params.id);
+    const parsed = parseMailboxId(rawId);
+    if (parsed?.direction === "received") {
+      const row = await prisma.receivedEmail.findUnique({
+        where: { id: parsed.id },
+        include: receivedInclude,
+      });
+      if (!row) throw new AppError(404, "E-mail não encontrado");
+      res.json({
+        data: serializeMailboxFromReceived(row),
+      } satisfies ApiResponse<MailboxItem>);
+      return;
+    }
+
+    const sentId = parsed?.id ?? rawId;
     const row = await prisma.sentEmail.findUnique({
-      where: { id },
+      where: { id: sentId },
       include: sentInclude,
     });
-    if (!row) {
-      throw new AppError(404, "E-mail não encontrado");
-    }
+    if (!row) throw new AppError(404, "E-mail não encontrado");
     res.json({
-      data: serializeSentEmail(row),
-    } satisfies ApiResponse<SentEmail>);
+      data: serializeMailboxFromSent(row),
+    } satisfies ApiResponse<MailboxItem>);
   } catch (error) {
     if (error instanceof z.ZodError) {
       next(new AppError(400, "ID inválido"));

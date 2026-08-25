@@ -79,6 +79,7 @@ model User {
   activities        ProspectActivity[]
   emailSignature    EmailSignature?
   sentEmails        SentEmail[]
+  receivedEmails    ReceivedEmail[]
 
   @@index([roleId])
 }
@@ -120,6 +121,7 @@ model Prospect {
   createdBy      User               @relation("ProspectCreator", fields: [createdById], references: [id], onDelete: Cascade)
   activities     ProspectActivity[]
   sentEmails     SentEmail[]
+  receivedEmails ReceivedEmail[]
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 
@@ -159,23 +161,48 @@ model ProspectActivity {
 }
 
 model SentEmail {
-  id         String    @id @default(cuid())
+  id         String          @id @default(cuid())
   userId     String
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   prospectId String?
-  prospect   Prospect? @relation(fields: [prospectId], references: [id], onDelete: SetNull)
+  prospect   Prospect?       @relation(fields: [prospectId], references: [id], onDelete: SetNull)
   toEmail    String
   toName     String?
   subject    String
   body       String
   replyTo    String?
   providerId String?
-  createdAt  DateTime  @default(now())
+  createdAt  DateTime        @default(now())
+  replies    ReceivedEmail[]
 
   @@index([userId, createdAt])
   @@index([prospectId])
   @@index([createdAt])
   @@index([toEmail])
+}
+
+model ReceivedEmail {
+  id          String    @id @default(cuid())
+  userId      String?
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  prospectId  String?
+  prospect    Prospect? @relation(fields: [prospectId], references: [id], onDelete: SetNull)
+  sentEmailId String?
+  sentEmail   SentEmail? @relation(fields: [sentEmailId], references: [id], onDelete: SetNull)
+  fromEmail   String
+  fromName    String?
+  toEmail     String
+  subject     String
+  body        String
+  isReply     Boolean   @default(true)
+  providerId  String    @unique
+  createdAt   DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([prospectId])
+  @@index([sentEmailId])
+  @@index([fromEmail])
+  @@index([createdAt])
 }
 
 model Prompt {

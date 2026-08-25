@@ -1708,7 +1708,34 @@ label .country-select {
 
 .settings-reply .form-grid,
 .settings-password .form-grid {
-  max-width: 420px;
+  max-width: 560px;
+}
+
+.reply-to-control {
+  display: flex;
+  gap: var(--space-2);
+  align-items: stretch;
+}
+
+.reply-to-control input {
+  flex: 1;
+  min-width: 0;
+}
+
+.reply-to-control input:read-only {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.reply-to-control .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.settings-reply code {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text);
 }
 
 .settings-email-form {
@@ -3240,6 +3267,44 @@ html[data-theme="light"] .compose-footer {
   background: color-mix(in srgb, var(--brand) 10%, var(--surface));
 }
 
+.mail-tr.mail-tr-reply {
+  background: color-mix(in srgb, var(--brand) 11%, var(--surface));
+  box-shadow: inset 3px 0 0 var(--brand);
+}
+
+.mail-tr.mail-tr-reply:hover {
+  background: color-mix(in srgb, var(--brand) 16%, var(--surface));
+}
+
+.mail-tr.mail-tr-reply.checked {
+  background: color-mix(in srgb, var(--brand) 18%, var(--surface));
+}
+
+.mail-tr.mail-tr-reply .mail-col-to,
+.mail-tr.mail-tr-reply .mail-subject {
+  font-weight: 750;
+}
+
+.mail-reply-badge {
+  display: inline-block;
+  margin-right: 0.45rem;
+  padding: 0.08rem 0.42rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: 1px;
+  background: color-mix(in srgb, var(--brand) 22%, var(--surface));
+  color: var(--brand);
+  line-height: 1.4;
+}
+
+.mail-reading-header h1 .mail-reply-badge {
+  margin-right: 0.55rem;
+  vertical-align: 0.15em;
+}
+
 .mail-col-to {
   font-weight: 650;
   white-space: nowrap;
@@ -3499,6 +3564,14 @@ html[data-theme="light"] .mail-tr:hover {
 
 html[data-theme="light"] .mail-tr.checked {
   background: #e8f0fe;
+}
+
+html[data-theme="light"] .mail-tr.mail-tr-reply {
+  background: #eef0ff;
+}
+
+html[data-theme="light"] .mail-tr.mail-tr-reply:hover {
+  background: #e4e7ff;
 }
 
 html[data-theme="light"] .mail-search input {

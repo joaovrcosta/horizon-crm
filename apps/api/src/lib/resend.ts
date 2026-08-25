@@ -166,3 +166,55 @@ export async function sendProspectEmail(opts: {
 
   return { ...(data ?? {}), replyTo };
 }
+
+export type ReceivedEmailPayload = {
+  id?: string;
+  from?: string;
+  to?: string | string[];
+  subject?: string | null;
+  html?: string | null;
+  text?: string | null;
+  created_at?: string;
+};
+
+export async function fetchReceivedEmail(
+  emailId: string,
+): Promise<ReceivedEmailPayload | null> {
+  const key = process.env.RESEND_API_KEY?.trim();
+  if (!key) {
+    throw new AppError(500, "RESEND_API_KEY não configurada");
+  }
+
+  try {
+    const resend = getResend();
+    const receiving = (
+      resend.emails as {
+        receiving?: {
+          get: (
+            id: string,
+          ) => Promise<{ data: ReceivedEmailPayload | null; error: unknown }>;
+        };
+      }
+    ).receiving;
+    if (receiving?.get) {
+      const { data, error } = await receiving.get(emailId);
+      if (!error && data) return data;
+      if (error) {
+        console.warn("[email] receiving.get", emailId, error);
+      }
+    }
+  } catch (error) {
+    console.warn("[email] SDK receiving.get", error);
+  }
+
+  const response = await fetch(
+    `https://api.resend.com/emails/receiving/${encodeURIComponent(emailId)}`,
+    { headers: { Authorization: `Bearer ${key}` } },
+  );
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    console.warn("[email] receiving HTTP", response.status, detail);
+    return null;
+  }
+  return (await response.json()) as ReceivedEmailPayload;
+}

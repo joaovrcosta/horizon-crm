@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import type { SentEmail } from "@horizon/shared";
+import type { MailboxItem } from "@horizon/shared";
 import { useComposeEmail } from "@/components/compose-email";
 import {
   IconChevronLeft,
@@ -43,13 +43,20 @@ function formatListDate(iso: string) {
   });
 }
 
-function recipientLabel(email: SentEmail) {
+function contactLabel(email: MailboxItem) {
+  if (email.direction === "received") {
+    return email.fromName?.trim() || email.prospectName?.trim() || email.fromEmail;
+  }
   return email.toName?.trim() || email.prospectName?.trim() || email.toEmail;
+}
+
+function contactEmail(email: MailboxItem) {
+  return email.direction === "received" ? email.fromEmail : email.toEmail;
 }
 
 export default function MailPage() {
   const { open: openCompose } = useComposeEmail();
-  const [emails, setEmails] = useState<SentEmail[]>([]);
+  const [emails, setEmails] = useState<MailboxItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
@@ -64,7 +71,7 @@ export default function MailPage() {
       const path = appliedQuery.trim()
         ? `/emails?q=${encodeURIComponent(appliedQuery.trim())}`
         : "/emails";
-      const data = await apiFetch<SentEmail[]>(path);
+      const data = await apiFetch<MailboxItem[]>(path);
       setEmails(data);
       setSelectedIds(new Set());
     } catch (err) {
@@ -105,6 +112,7 @@ export default function MailPage() {
   }
 
   if (selected) {
+    const inbound = selected.direction === "received";
     return (
       <div className="mail-page">
         <div className="mail-toolbar">
@@ -114,7 +122,7 @@ export default function MailPage() {
             onClick={() => setSelectedId(null)}
           >
             <IconChevronLeft size={16} />
-            Voltar para enviados
+            Voltar
           </button>
           <div className="mail-toolbar-spacer" />
           <button
@@ -129,19 +137,38 @@ export default function MailPage() {
 
         <article className="mail-reading">
           <header className="mail-reading-header">
-            <h1>{selected.subject}</h1>
+            <h1>
+              {inbound ? (
+                <span className="mail-reply-badge">Resposta</span>
+              ) : null}
+              {selected.subject}
+            </h1>
             <div className="mail-reading-meta">
               <div className="mail-reading-people">
                 <span className="mail-reading-avatar" aria-hidden>
-                  {recipientLabel(selected).slice(0, 1).toUpperCase()}
+                  {contactLabel(selected).slice(0, 1).toUpperCase()}
                 </span>
                 <div>
-                  <strong>Para {recipientLabel(selected)}</strong>
-                  <span>&lt;{selected.toEmail}&gt;</span>
-                  <span className="mail-reading-from">
-                    Enviado por {selected.userName}
-                    {selected.replyTo ? ` · Reply-To ${selected.replyTo}` : ""}
-                  </span>
+                  {inbound ? (
+                    <>
+                      <strong>De {contactLabel(selected)}</strong>
+                      <span>&lt;{selected.fromEmail}&gt;</span>
+                      <span className="mail-reading-from">
+                        Para {selected.toEmail}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <strong>Para {contactLabel(selected)}</strong>
+                      <span>&lt;{selected.toEmail}&gt;</span>
+                      <span className="mail-reading-from">
+                        Enviado por {selected.userName}
+                        {selected.replyTo
+                          ? ` · Reply-To ${selected.replyTo}`
+                          : ""}
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
               <time dateTime={selected.createdAt}>
@@ -173,7 +200,7 @@ export default function MailPage() {
       <div className="mail-toolbar">
         <div className="mail-toolbar-left">
           <h1>
-            Enviados
+            E-mails
             <span className="count">{emails.length}</span>
           </h1>
         </div>
@@ -181,7 +208,7 @@ export default function MailPage() {
           <IconSearch size={15} />
           <input
             type="search"
-            placeholder="Buscar e-mails enviados"
+            placeholder="Buscar e-mails"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
@@ -210,7 +237,7 @@ export default function MailPage() {
               aria-label="Selecionar todos"
             />
           </label>
-          <span className="mail-col-to">Para</span>
+          <span className="mail-col-to">Contato</span>
           <span className="mail-col-subject">Assunto</span>
           <span className="mail-col-date">Data</span>
         </div>
@@ -222,7 +249,7 @@ export default function MailPage() {
         {!loading && !error && emails.length === 0 ? (
           <div className="mail-empty">
             <IconMail size={28} />
-            <p>Nenhum e-mail enviado ainda.</p>
+            <p>Nenhum e-mail ainda.</p>
             <button
               type="button"
               className="btn btn-primary"
@@ -238,11 +265,12 @@ export default function MailPage() {
           {!loading &&
             emails.map((item) => {
               const checked = selectedIds.has(item.id);
+              const isReply = item.direction === "received";
               return (
                 <div
                   key={item.id}
                   role="listitem"
-                  className={`mail-tr${checked ? " checked" : ""}`}
+                  className={`mail-tr${checked ? " checked" : ""}${isReply ? " mail-tr-reply" : ""}`}
                   onClick={() => setSelectedId(item.id)}
                 >
                   <label
@@ -253,11 +281,14 @@ export default function MailPage() {
                       type="checkbox"
                       checked={checked}
                       onChange={() => toggleOne(item.id)}
-                      aria-label={`Selecionar ${recipientLabel(item)}`}
+                      aria-label={`Selecionar ${contactLabel(item)}`}
                     />
                   </label>
-                  <span className="mail-col-to" title={item.toEmail}>
-                    {recipientLabel(item)}
+                  <span className="mail-col-to" title={contactEmail(item)}>
+                    {isReply ? (
+                      <span className="mail-reply-badge">Resposta</span>
+                    ) : null}
+                    {contactLabel(item)}
                   </span>
                   <span className="mail-col-subject">
                     <span className="mail-subject">{item.subject}</span>

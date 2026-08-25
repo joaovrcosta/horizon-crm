@@ -209,6 +209,27 @@ export type SentEmail = {
   createdAt: string;
 };
 
+export type MailDirection = "sent" | "received";
+
+export type MailboxItem = {
+  id: string;
+  direction: MailDirection;
+  isReply: boolean;
+  userId: string | null;
+  userName: string | null;
+  prospectId: string | null;
+  prospectName: string | null;
+  fromEmail: string;
+  fromName: string | null;
+  toEmail: string;
+  toName: string | null;
+  subject: string;
+  body: string;
+  replyTo: string | null;
+  providerId: string | null;
+  createdAt: string;
+};
+
 export type EmailSignatureInput = {
   enabled: boolean;
   replyToEmail: string | null;

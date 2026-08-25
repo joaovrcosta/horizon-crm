@@ -65,6 +65,10 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [editingReplyTo, setEditingReplyTo] = useState(false);
+  const [replyToDraft, setReplyToDraft] = useState(DEFAULT_EMAIL_REPLY_TO);
+  const [savingReplyTo, setSavingReplyTo] = useState(false);
+  const [replyToSaved, setReplyToSaved] = useState(false);
 
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -81,7 +85,10 @@ export default function SettingsPage() {
     setError("");
     try {
       const data = await apiFetch<EmailSignature>("/settings/email-signature");
-      setForm(toForm(data, user.name));
+      const next = toForm(data, user.name);
+      setForm(next);
+      setReplyToDraft(next.replyToEmail);
+      setEditingReplyTo(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao carregar");
     } finally {
@@ -123,6 +130,57 @@ export default function SettingsPage() {
       setError(err instanceof Error ? err.message : "Erro ao salvar");
     } finally {
       setSaving(false);
+    }
+  }
+
+  function startEditReplyTo() {
+    setReplyToDraft(form.replyToEmail);
+    setReplyToSaved(false);
+    setEditingReplyTo(true);
+  }
+
+  function cancelEditReplyTo() {
+    setReplyToDraft(form.replyToEmail);
+    setEditingReplyTo(false);
+    setError("");
+  }
+
+  async function saveReplyTo() {
+    const nextEmail = replyToDraft.trim();
+    if (!nextEmail) {
+      setError("Informe o e-mail de respostas.");
+      return;
+    }
+    setSavingReplyTo(true);
+    setError("");
+    setReplyToSaved(false);
+    try {
+      const data = await apiFetch<EmailSignature>("/settings/email-signature", {
+        method: "PUT",
+        body: {
+          enabled: form.enabled,
+          replyToEmail: nextEmail,
+          displayName: form.displayName || null,
+          title: form.title || null,
+          phone: form.phone || null,
+          logoUrl: form.logoUrl.trim() || DEFAULT_EMAIL_LOGO_URL,
+          company: form.company || null,
+          tagline: form.tagline || null,
+          addressLine1: form.addressLine1 || null,
+          addressLine2: form.addressLine2 || null,
+          website: form.website || null,
+          defaultIntro: form.defaultIntro || null,
+        },
+      });
+      const next = toForm(data, user?.name ?? "");
+      setForm(next);
+      setReplyToDraft(next.replyToEmail);
+      setEditingReplyTo(false);
+      setReplyToSaved(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao salvar o Reply-To");
+    } finally {
+      setSavingReplyTo(false);
     }
   }
 
@@ -282,7 +340,6 @@ export default function SettingsPage() {
           </form>
         </section>
 
-        <form className="settings-email-form" onSubmit={save}>
         <section className="panel settings-reply">
           <h2>Respostas de e-mail</h2>
           <p className="panel-desc">
@@ -294,23 +351,71 @@ export default function SettingsPage() {
           <div className="form-grid">
             <label className="span-2">
               Reply-To (caixa de respostas)
-              <input
-                type="email"
-                value={form.replyToEmail}
-                onChange={(e) =>
-                  setForm({ ...form, replyToEmail: e.target.value })
-                }
-                placeholder={DEFAULT_EMAIL_REPLY_TO}
-                required
-              />
+              <div className="reply-to-control">
+                <input
+                  type="email"
+                  value={editingReplyTo ? replyToDraft : form.replyToEmail}
+                  onChange={(e) => setReplyToDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && editingReplyTo) {
+                      e.preventDefault();
+                      void saveReplyTo();
+                    }
+                    if (e.key === "Escape" && editingReplyTo) {
+                      e.preventDefault();
+                      cancelEditReplyTo();
+                    }
+                  }}
+                  placeholder="contato@inbox.halk.solutions"
+                  required
+                  readOnly={!editingReplyTo}
+                  aria-readonly={!editingReplyTo}
+                />
+                {!editingReplyTo ? (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={startEditReplyTo}
+                  >
+                    Alterar
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={cancelEditReplyTo}
+                      disabled={savingReplyTo}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => void saveReplyTo()}
+                      disabled={savingReplyTo}
+                    >
+                      {savingReplyTo ? "Salvando…" : "Salvar"}
+                    </button>
+                  </>
+                )}
+              </div>
             </label>
           </div>
 
+          {replyToSaved && !editingReplyTo ? (
+            <p className="save-ok">Reply-To atualizado. Os próximos envios usarão este endereço.</p>
+          ) : null}
+
           <p className="field-hint">
-            Padrão da equipe: {DEFAULT_EMAIL_REPLY_TO}. Use um endereço real
-            que você monitora (Outlook, Gmail, etc.).
+            Use um endereço que o Resend receba, por exemplo{" "}
+            <code>contato@inbox.halk.solutions</code>. Não use o endereço de
+            envio (<code>{DEFAULT_EMAIL_REPLY_TO}</code>), senão as respostas
+            não chegam.
           </p>
         </section>
+
+        <form className="settings-email-form" onSubmit={save}>
 
         <section className="panel">
           <h2>Assinatura de e-mail</h2>
