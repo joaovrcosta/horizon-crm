@@ -70,6 +70,25 @@ const FOLDERS: { id: MailFolder; label: string }[] = [
   { id: "sent", label: "Enviados" },
 ];
 
+function parseMailboxPage(data: MailboxPage | MailboxItem[] | null | undefined): MailboxPage {
+  if (Array.isArray(data)) {
+    return {
+      items: data,
+      total: data.length,
+      page: 1,
+      pageSize: PAGE_SIZE,
+      unreadCount: 0,
+    };
+  }
+  return {
+    items: data?.items ?? [],
+    total: data?.total ?? 0,
+    page: data?.page ?? 1,
+    pageSize: data?.pageSize ?? PAGE_SIZE,
+    unreadCount: data?.unreadCount ?? 0,
+  };
+}
+
 export default function MailPage() {
   const { open: openCompose } = useComposeEmail();
   const [emails, setEmails] = useState<MailboxItem[]>([]);
@@ -94,7 +113,9 @@ export default function MailPage() {
         pageSize: String(PAGE_SIZE),
       });
       if (appliedQuery.trim()) params.set("q", appliedQuery.trim());
-      const data = await apiFetch<MailboxPage>(`/emails?${params.toString()}`);
+      const data = parseMailboxPage(
+        await apiFetch<MailboxPage | MailboxItem[]>(`/emails?${params.toString()}`),
+      );
       setEmails(data.items);
       setTotal(data.total);
       setUnreadCount(data.unreadCount);
@@ -115,7 +136,7 @@ export default function MailPage() {
   }, [load]);
 
   const selected = useMemo(
-    () => emails.find((item) => item.id === selectedId) ?? null,
+    () => (emails ?? []).find((item) => item.id === selectedId) ?? null,
     [emails, selectedId],
   );
 
@@ -124,7 +145,8 @@ export default function MailPage() {
   const canNext = page < pageCount && total > 0;
 
   const allSelected =
-    emails.length > 0 && emails.every((item) => selectedIds.has(item.id));
+    (emails?.length ?? 0) > 0 &&
+    emails.every((item) => selectedIds.has(item.id));
 
   function changeFolder(next: MailFolder) {
     setFolder(next);
@@ -151,7 +173,7 @@ export default function MailPage() {
 
   function markLocalRead(id: string) {
     setEmails((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, unread: false } : item)),
+      (prev ?? []).map((item) => (item.id === id ? { ...item, unread: false } : item)),
     );
     setUnreadCount((prev) => Math.max(0, prev - 1));
   }
