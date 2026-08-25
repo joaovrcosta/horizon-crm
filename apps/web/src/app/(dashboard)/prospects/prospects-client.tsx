@@ -190,7 +190,7 @@ export default function ProspectsPage() {
   const [emailPromptId, setEmailPromptId] = useState("");
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
-  const [emailFontFamily, setEmailFontFamily] = useState(DEFAULT_EMAIL_FONT);
+  const [emailFontFamily, setEmailFontFamily] = useState<string>(DEFAULT_EMAIL_FONT);
   const [loadingPrompts, setLoadingPrompts] = useState(false);
   const [openingEmail, setOpeningEmail] = useState(false);
   const [emailSignature, setEmailSignature] = useState<EmailSignature | null>(

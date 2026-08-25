@@ -67,7 +67,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
-  const [fontFamily, setFontFamily] = useState(DEFAULT_EMAIL_FONT);
+  const [fontFamily, setFontFamily] = useState<string>(DEFAULT_EMAIL_FONT);
   const [promptId, setPromptId] = useState("");
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [loadingPrompts, setLoadingPrompts] = useState(false);
