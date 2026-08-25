@@ -44,6 +44,7 @@ import {
 import {
   IconChevronDown,
   IconChevronLeft,
+  IconCopy,
   IconEdit,
   IconFilter,
   IconMail,
@@ -54,6 +55,7 @@ import {
   IconWhatsApp,
   IconX,
 } from "@/components/icons";
+import { normalizeLinkHref } from "@/lib/email-body";
 
 type FormState = {
   name: string;
@@ -566,6 +568,17 @@ export default function ProspectsPage() {
     }
   }
 
+  async function copyField(label: string, value: string) {
+    const text = value.trim();
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(`${label} copiado`);
+    } catch {
+      toast.error(`Não foi possível copiar ${label.toLowerCase()}`);
+    }
+  }
+
   const tabCounts = useMemo(() => {
     const counts = Object.fromEntries(
       PROSPECT_STATUSES.map((status) => [status, 0]),
@@ -1017,7 +1030,49 @@ export default function ProspectsPage() {
                   <dt>E-mail</dt>
                   <dd>
                     {selected.email ? (
-                      <a href={`mailto:${selected.email}`}>{selected.email}</a>
+                      <span className="kv-copyable">
+                        <a href={`mailto:${selected.email}`}>{selected.email}</a>
+                        <button
+                          type="button"
+                          className="kv-copy-btn"
+                          title="Copiar e-mail"
+                          aria-label="Copiar e-mail"
+                          onClick={() =>
+                            void copyField("E-mail", selected.email!)
+                          }
+                        >
+                          <IconCopy size={13} />
+                        </button>
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </dd>
+                </div>
+                <div className="kv-row">
+                  <dt>Site</dt>
+                  <dd>
+                    {selected.website ? (
+                      <span className="kv-copyable">
+                        <a
+                          href={normalizeLinkHref(selected.website)}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {selected.website.replace(/^https?:\/\//i, "")}
+                        </a>
+                        <button
+                          type="button"
+                          className="kv-copy-btn"
+                          title="Copiar site"
+                          aria-label="Copiar site"
+                          onClick={() =>
+                            void copyField("Site", selected.website!)
+                          }
+                        >
+                          <IconCopy size={13} />
+                        </button>
+                      </span>
                     ) : (
                       "—"
                     )}
