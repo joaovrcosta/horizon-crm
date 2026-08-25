@@ -36,6 +36,7 @@ import {
 } from "@/lib/email-body";
 import {
   applyPromptTemplate,
+  filterPromptsByCategory,
   formatDateTime,
   fromDatetimeLocalValue,
   isOverdue,
@@ -626,6 +627,17 @@ export default function ProspectsPage() {
     }
     return counts;
   }, [prospects]);
+
+  const categoryPrompts = useMemo(
+    () => filterPromptsByCategory(prompts, selected?.category),
+    [prompts, selected?.category],
+  );
+
+  useEffect(() => {
+    if (emailPromptId && !categoryPrompts.some((p) => p.id === emailPromptId)) {
+      setEmailPromptId("");
+    }
+  }, [categoryPrompts, emailPromptId]);
 
   const listed =
     listTab === "FILTER"
@@ -1576,15 +1588,27 @@ export default function ProspectsPage() {
                 <option value="">
                   {loadingPrompts
                     ? "Carregando…"
-                    : "Nenhum (escrever manualmente)"}
+                    : selected?.category && categoryPrompts.length === 0
+                      ? `Nenhum template para ${selected.category}`
+                      : "Nenhum (escrever manualmente)"}
                 </option>
-                {prompts.map((p) => (
+                {categoryPrompts.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.title}
                     {p.visibility === "PUBLIC" ? " · público" : ""}
                   </option>
                 ))}
               </select>
+              {selected?.category ? (
+                <p className="field-hint">
+                  Mostrando templates da categoria {selected.category}.
+                </p>
+              ) : (
+                <p className="field-hint">
+                  Cliente sem categoria — todos os templates. Defina a
+                  categoria no cadastro para filtrar.
+                </p>
+              )}
             </div>
 
             <div className="compose-body-wrap">

@@ -6,6 +6,7 @@ import type { PermissionKey } from "@horizon/shared";
 import { AppError } from "../lib/errors";
 import { prisma } from "../lib/prisma";
 import { requireAuth } from "../middleware/auth";
+import { resolveTagNames } from "../lib/tags";
 
 const router = Router();
 
@@ -14,7 +15,7 @@ const visibilityEnum = z.enum(["PUBLIC", "PRIVATE"]);
 const createSchema = z.object({
   title: z.string().min(1).max(200),
   content: z.string().min(1).max(50000),
-  tags: z.array(z.string().max(40)).max(20).optional(),
+  tags: z.array(z.string().max(80)).max(20).optional(),
   visibility: visibilityEnum.default("PRIVATE"),
 });
 
@@ -151,11 +152,14 @@ router.get("/:id", async (req, res, next) => {
 router.post("/", async (req, res, next) => {
   try {
     const body = createSchema.parse(req.body);
+    const tags = body.tags
+      ? await resolveTagNames("CATEGORY", body.tags)
+      : [];
     const prompt = await prisma.prompt.create({
       data: {
         title: body.title,
         content: body.content,
-        tags: body.tags ?? [],
+        tags,
         visibility: body.visibility as PromptVisibility,
         createdById: req.user!.id,
       },
@@ -187,7 +191,9 @@ router.patch("/:id", async (req, res, next) => {
       data: {
         ...(body.title !== undefined ? { title: body.title } : {}),
         ...(body.content !== undefined ? { content: body.content } : {}),
-        ...(body.tags !== undefined ? { tags: body.tags } : {}),
+        ...(body.tags !== undefined
+          ? { tags: await resolveTagNames("CATEGORY", body.tags) }
+          : {}),
         ...(body.visibility !== undefined
           ? { visibility: body.visibility as PromptVisibility }
           : {}),

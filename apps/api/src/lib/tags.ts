@@ -103,3 +103,119 @@ export async function resolveTagNames(
 export async function findTagByQuery(kind: ProspectTagKind, raw: string) {
   return findExistingTag(kind, raw);
 }
+
+export async function renameTag(id: string, rawName: string) {
+  const tag = await prisma.prospectTag.findUnique({ where: { id } });
+  if (!tag) {
+    throw new AppError(404, "Tag não encontrada.");
+  }
+
+  const name = normalizeTagName(rawName);
+  const slug = slugifyTag(name);
+  if (!name || !slug) {
+    throw new AppError(400, "Tag inválida.");
+  }
+
+  if (tag.name === name && tag.slug === slug) {
+    return tag;
+  }
+
+  const clash = await findExistingTag(tag.kind, name);
+  if (clash && clash.id !== tag.id) {
+    throw new AppError(409, "Já existe uma tag com esse nome.");
+  }
+
+  const oldName = tag.name;
+
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.prospectTag.update({
+      where: { id },
+      data: { name, slug },
+    });
+
+    if (tag.kind === PrismaTagKind.CATEGORY) {
+      await tx.prospect.updateMany({
+        where: { category: { equals: oldName, mode: "insensitive" } },
+        data: { category: name },
+      });
+
+      const prompts = await tx.prompt.findMany({
+        where: { tags: { has: oldName } },
+      });
+      for (const prompt of prompts) {
+        await tx.prompt.update({
+          where: { id: prompt.id },
+          data: {
+            tags: prompt.tags.map((item) =>
+              item.toLowerCase() === oldName.toLowerCase() ? name : item,
+            ),
+          },
+        });
+      }
+    } else {
+      const prospects = await tx.prospect.findMany({
+        where: { languages: { has: oldName } },
+        select: { id: true, languages: true },
+      });
+      for (const prospect of prospects) {
+        await tx.prospect.update({
+          where: { id: prospect.id },
+          data: {
+            languages: prospect.languages.map((item) =>
+              item.toLowerCase() === oldName.toLowerCase() ? name : item,
+            ),
+          },
+        });
+      }
+    }
+
+    return updated;
+  });
+}
+
+export async function deleteTag(id: string) {
+  const tag = await prisma.prospectTag.findUnique({ where: { id } });
+  if (!tag) {
+    throw new AppError(404, "Tag não encontrada.");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    if (tag.kind === PrismaTagKind.CATEGORY) {
+      await tx.prospect.updateMany({
+        where: { category: { equals: tag.name, mode: "insensitive" } },
+        data: { category: null },
+      });
+
+      const prompts = await tx.prompt.findMany({
+        where: { tags: { has: tag.name } },
+      });
+      for (const prompt of prompts) {
+        await tx.prompt.update({
+          where: { id: prompt.id },
+          data: {
+            tags: prompt.tags.filter(
+              (item) => item.toLowerCase() !== tag.name.toLowerCase(),
+            ),
+          },
+        });
+      }
+    } else {
+      const prospects = await tx.prospect.findMany({
+        where: { languages: { has: tag.name } },
+        select: { id: true, languages: true },
+      });
+      for (const prospect of prospects) {
+        await tx.prospect.update({
+          where: { id: prospect.id },
+          data: {
+            languages: prospect.languages.filter(
+              (item) => item.toLowerCase() !== tag.name.toLowerCase(),
+            ),
+          },
+        });
+      }
+    }
+
+    await tx.prospectTag.delete({ where: { id } });
+  });
+}

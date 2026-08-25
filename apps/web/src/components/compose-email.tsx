@@ -37,7 +37,7 @@ import {
   composeEmailSchema,
   type ComposeEmailValues,
 } from "@/lib/compose-email-schema";
-import { applyPromptTemplate } from "@/lib/prospect-utils";
+import { applyPromptTemplate, filterPromptsByCategory } from "@/lib/prospect-utils";
 
 type ComposeOpenOptions = {
   to?: string;
@@ -45,6 +45,7 @@ type ComposeOpenOptions = {
   subject?: string;
   body?: string;
   reply?: boolean;
+  category?: string | null;
 };
 
 type ComposeContextValue = {
@@ -56,6 +57,7 @@ type RecipientSuggestion = {
   id: string;
   name: string;
   email: string;
+  category: string | null;
 };
 
 const ComposeContext = createContext<ComposeContextValue | null>(null);
@@ -76,6 +78,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
   const [minimized, setMinimized] = useState(false);
   const [toName, setToName] = useState("");
   const [toQuery, setToQuery] = useState("");
+  const [toCategory, setToCategory] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<RecipientSuggestion[]>([]);
   const [searchingRecipients, setSearchingRecipients] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -118,6 +121,9 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
     setShowSuggestions(false);
     setSearchingRecipients(false);
     reset({ to: "", subject: "", body: "" });
+    setToName("");
+    setToQuery("");
+    setToCategory(null);
     setIsReply(false);
     skipIntroRef.current = false;
   }, [reset]);
@@ -128,6 +134,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
       setIsReply(Boolean(opts?.reply));
       setToName(opts?.name ?? "");
       setToQuery(opts?.to ?? opts?.name ?? "");
+      setToCategory(opts?.category ?? null);
       setSuggestions([]);
       setShowSuggestions(false);
       reset({
@@ -222,6 +229,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
               id: p.id,
               name: p.name,
               email: p.email!.trim(),
+              category: p.category,
             }));
           setSuggestions(withEmail);
           setShowSuggestions(true);
@@ -255,6 +263,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
     setValue("to", recipient.email, { shouldValidate: Boolean(errors.to) });
     setToName(recipient.name);
     setToQuery(recipient.email);
+    setToCategory(recipient.category);
     setSuggestions([]);
     setShowSuggestions(false);
   }
@@ -266,7 +275,19 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
       shouldValidate: Boolean(errors.to),
     });
     if (!value.includes("@")) setToName("");
+    setToCategory(null);
   }
+
+  const categoryPrompts = useMemo(
+    () => filterPromptsByCategory(prompts, toCategory),
+    [prompts, toCategory],
+  );
+
+  useEffect(() => {
+    if (promptId && !categoryPrompts.some((item) => item.id === promptId)) {
+      setPromptId("");
+    }
+  }, [categoryPrompts, promptId]);
 
   function applyTemplate(id: string) {
     setPromptId(id);
@@ -279,6 +300,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
         applyPromptTemplate(prompt.content, {
           name: toName,
           email: toEmail || toQuery,
+          category: toCategory,
           consultantName: user?.name,
         }),
       ),
@@ -471,15 +493,22 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
                 <option value="">
                   {loadingPrompts
                     ? "Carregando…"
-                    : "Nenhum (escrever manualmente)"}
+                    : toCategory && categoryPrompts.length === 0
+                      ? `Nenhum template para ${toCategory}`
+                      : "Nenhum (escrever manualmente)"}
                 </option>
-                {prompts.map((p) => (
+                {categoryPrompts.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.title}
                     {p.visibility === "PUBLIC" ? " · público" : ""}
                   </option>
                 ))}
               </select>
+              {toCategory ? (
+                <p className="field-hint">
+                  Mostrando templates da categoria {toCategory}.
+                </p>
+              ) : null}
             </div>
 
             <div className="compose-body-wrap">

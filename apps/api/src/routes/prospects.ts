@@ -24,6 +24,8 @@ import {
   serializeTag,
   slugifyTag,
   upsertTag,
+  renameTag,
+  deleteTag,
 } from "../lib/tags";
 import { requireAuth } from "../middleware/auth";
 
@@ -90,7 +92,7 @@ router.get("/tags", async (req, res, next) => {
     const tags = await prisma.prospectTag.findMany({
       where: { kind: query.kind },
       orderBy: { name: "asc" },
-      take: 200,
+      take: 500,
     });
 
     const seen = new Set<string>();
@@ -112,7 +114,7 @@ router.get("/tags", async (req, res, next) => {
       : unique;
 
     res.json({
-      data: filtered.slice(0, 40).map(serializeTag),
+      data: filtered.slice(0, q ? 40 : 500).map(serializeTag),
     } satisfies ApiResponse<ProspectTag[]>);
   } catch (error) {
     next(error);
@@ -132,6 +134,34 @@ router.post("/tags", async (req, res, next) => {
     res.status(201).json({
       data: serializeTag(tag),
     } satisfies ApiResponse<ProspectTag>);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch("/tags/:id", async (req, res, next) => {
+  try {
+    const id = z.string().cuid().parse(req.params.id);
+    const body = z
+      .object({
+        name: z.string().min(1).max(80),
+      })
+      .parse(req.body);
+
+    const tag = await renameTag(id, body.name);
+    res.json({
+      data: serializeTag(tag),
+    } satisfies ApiResponse<ProspectTag>);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.delete("/tags/:id", async (req, res, next) => {
+  try {
+    const id = z.string().cuid().parse(req.params.id);
+    await deleteTag(id);
+    res.status(204).send();
   } catch (error) {
     next(error);
   }

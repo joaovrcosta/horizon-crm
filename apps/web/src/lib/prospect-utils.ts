@@ -94,6 +94,25 @@ export function applyPromptTemplate(template: string, vars: PromptVars) {
   });
 }
 
+export function normalizeTagKey(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+export function filterPromptsByCategory<T extends { tags: string[] }>(
+  prompts: T[],
+  category: string | null | undefined,
+): T[] {
+  const key = category ? normalizeTagKey(category) : "";
+  if (!key) return prompts;
+  return prompts.filter((prompt) =>
+    prompt.tags.some((tag) => normalizeTagKey(tag) === key),
+  );
+}
+
 export function toMailtoLink(opts: {
   to: string;
   subject?: string;

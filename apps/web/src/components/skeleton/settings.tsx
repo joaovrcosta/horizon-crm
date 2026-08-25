@@ -23,6 +23,22 @@ export function SettingsSkeleton() {
           <Skeleton width="70%" height={14} style={{ marginBottom: 16 }} />
           <Skeleton width={420} height={38} radius={6} />
         </section>
+        <section className="panel settings-tags">
+          <Skeleton width={200} height={22} style={{ marginBottom: 12 }} />
+          <Skeleton width="80%" height={14} style={{ marginBottom: 16 }} />
+          <div className="settings-tags-grid">
+            <div>
+              <Skeleton width={120} height={18} style={{ marginBottom: 12 }} />
+              <Skeleton width="100%" height={38} radius={6} style={{ marginBottom: 8 }} />
+              <Skeleton width="70%" height={28} radius={999} />
+            </div>
+            <div>
+              <Skeleton width={120} height={18} style={{ marginBottom: 12 }} />
+              <Skeleton width="100%" height={38} radius={6} style={{ marginBottom: 8 }} />
+              <Skeleton width="70%" height={28} radius={999} />
+            </div>
+          </div>
+        </section>
         <section className="panel">
           <Skeleton width={180} height={22} style={{ marginBottom: 12 }} />
           <Skeleton width="90%" height={14} style={{ marginBottom: 20 }} />

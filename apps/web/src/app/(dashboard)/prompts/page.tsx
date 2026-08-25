@@ -15,6 +15,7 @@ import {
   IconTrash,
 } from "@/components/icons";
 import { PromptsSkeleton } from "@/components/skeleton";
+import { TagInput } from "@/components/tag-input";
 import { apiFetch } from "@/lib/api-client";
 import {
   DEFAULT_EMAIL_FONT,
@@ -29,7 +30,7 @@ import {
 const emptyForm = {
   title: "",
   content: "",
-  tags: "",
+  tags: [] as string[],
   visibility: "PRIVATE" as PromptVisibility,
 };
 
@@ -92,7 +93,7 @@ export default function PromptsPage() {
     setForm({
       title: prompt.title,
       content: plainTextToEditorHtml(prompt.content),
-      tags: prompt.tags.join(", "),
+      tags: prompt.tags,
       visibility: prompt.visibility,
     });
     setShowModal(true);
@@ -107,15 +108,10 @@ export default function PromptsPage() {
     }
     setSaving(true);
     try {
-      const tags = form.tags
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean);
-
       const payload = {
         title: form.title,
         content: form.content.trim(),
-        tags,
+        tags: form.tags,
         visibility: form.visibility,
       };
 
@@ -223,7 +219,7 @@ export default function PromptsPage() {
                     {prompt.visibility === "PUBLIC" ? "Público" : "Privado"}
                   </span>
                   {prompt.tags.map((tag) => (
-                    <span key={tag} className="tag">
+                    <span key={tag} className="tag tag-chip-category">
                       {tag}
                     </span>
                   ))}
@@ -344,13 +340,19 @@ export default function PromptsPage() {
                 </select>
               </label>
               <label>
-                Tags (separadas por vírgula)
-                <input
-                  placeholder="prospecção, whatsapp, follow-up"
+                Categorias
+                <TagInput
+                  kind="CATEGORY"
                   value={form.tags}
-                  onChange={(e) => setForm({ ...form, tags: e.target.value })}
+                  onChange={(tags) => setForm({ ...form, tags })}
+                  placeholder="Hotel, Restaurante…"
                 />
               </label>
+              <p className="field-hint">
+                O template só aparece no e-mail de clientes com uma dessas
+                categorias. Sem categoria, ele não entra no filtro. Gerencie o
+                catálogo em Configurações.
+              </p>
             </div>
             <div className="modal-actions">
               <button

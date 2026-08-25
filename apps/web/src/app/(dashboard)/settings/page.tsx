@@ -9,6 +9,7 @@ import {
 import { useAuth } from "@/components/auth-provider";
 import { EmailSignaturePreview } from "@/components/email-signature-preview";
 import { SettingsSkeleton } from "@/components/skeleton";
+import { SettingsTagCatalog } from "@/components/settings-tag-catalog";
 import { apiFetch } from "@/lib/api-client";
 
 type FormState = {
@@ -253,8 +254,8 @@ export default function SettingsPage() {
         <div>
           <h1>Configurações</h1>
           <p>
-            Configuração pessoal da sua conta ({user?.email}). Senha,
-            assinatura e corpo padrão de e-mail.
+            Configuração da sua conta ({user?.email}): senha, tags, assinatura
+            e corpo padrão de e-mail.
           </p>
         </div>
       </header>
@@ -413,6 +414,28 @@ export default function SettingsPage() {
             envio (<code>{DEFAULT_EMAIL_REPLY_TO}</code>), senão as respostas
             não chegam.
           </p>
+        </section>
+
+        <section className="panel settings-tags">
+          <h2>Categorias e idiomas</h2>
+          <p className="panel-desc">
+            Catálogo compartilhado da equipe. As categorias também definem
+            quais templates de e-mail aparecem para cada cliente.
+          </p>
+          <div className="settings-tags-grid">
+            <SettingsTagCatalog
+              kind="CATEGORY"
+              title="Categorias"
+              description="Ex.: Hotel, Restaurante, Clínica. Vincule o mesmo nome no template para filtrar o e-mail."
+              placeholder="Nova categoria"
+            />
+            <SettingsTagCatalog
+              kind="LANGUAGE"
+              title="Idiomas"
+              description="Ex.: Português, Inglês, Espanhol. Usados no cadastro e nos filtros de clientes."
+              placeholder="Novo idioma"
+            />
+          </div>
         </section>
 
         <form className="settings-email-form" onSubmit={save}>
