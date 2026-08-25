@@ -186,6 +186,7 @@ export default function ProspectsPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [listTab, setListTab] = useState<ListTab>("NEW");
   const filtersRef = useRef<HTMLDivElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
   const hadFiltersRef = useRef(false);
   const emailBodyEditorRef = useRef<EmailBodyEditorHandle>(null);
   const [loading, setLoading] = useState(true);
@@ -337,6 +338,68 @@ export default function ProspectsPage() {
     ].filter(Boolean).length +
     (createdFromFilter || createdToFilter ? 1 : 0);
   const hasActiveFilters = activeFilterCount > 0;
+  const [tabsOverflow, setTabsOverflow] = useState(false);
+  const [tabsAtStart, setTabsAtStart] = useState(true);
+  const [tabsAtEnd, setTabsAtEnd] = useState(true);
+  const [tabsThumb, setTabsThumb] = useState({ width: 100, x: 0 });
+
+  function syncTabsScroll() {
+    const el = tabsRef.current;
+    if (!el) return;
+    const { scrollWidth, clientWidth, scrollLeft } = el;
+    const overflowing = scrollWidth > clientWidth + 1;
+    const maxScroll = scrollWidth - clientWidth;
+    setTabsOverflow(overflowing);
+    setTabsAtStart(scrollLeft <= 1);
+    setTabsAtEnd(!overflowing || scrollLeft >= maxScroll - 1);
+    if (!overflowing || scrollWidth <= 0) {
+      setTabsThumb({ width: 100, x: 0 });
+      return;
+    }
+    const width = Math.max((clientWidth / scrollWidth) * 100, 16);
+    const maxX = 100 - width;
+    const x = maxScroll <= 0 ? 0 : (scrollLeft / maxScroll) * maxX;
+    setTabsThumb({ width, x });
+  }
+
+  function seekTabsScroll(clientX: number, track: HTMLElement) {
+    const el = tabsRef.current;
+    if (!el) return;
+    const rect = track.getBoundingClientRect();
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    if (maxScroll <= 0) return;
+    const thumbPx = Math.max(
+      (el.clientWidth / el.scrollWidth) * rect.width,
+      rect.width * 0.16,
+    );
+    const usable = Math.max(rect.width - thumbPx, 1);
+    const ratio = Math.min(
+      1,
+      Math.max(0, (clientX - rect.left - thumbPx / 2) / usable),
+    );
+    el.scrollLeft = ratio * maxScroll;
+  }
+
+  useEffect(() => {
+    const el = tabsRef.current;
+    if (!el) return;
+    syncTabsScroll();
+    const ro = new ResizeObserver(syncTabsScroll);
+    ro.observe(el);
+    window.addEventListener("resize", syncTabsScroll);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", syncTabsScroll);
+    };
+  }, [hasActiveFilters]);
+
+  useEffect(() => {
+    const el = tabsRef.current;
+    if (!el) return;
+    const active = el.querySelector<HTMLElement>(".list-pane-tab.active");
+    active?.scrollIntoView({ inline: "nearest", block: "nearest" });
+    syncTabsScroll();
+  }, [listTab]);
 
   useEffect(() => {
     if (hasActiveFilters && !hadFiltersRef.current) {
@@ -710,7 +773,7 @@ export default function ProspectsPage() {
         <button
           type="button"
           className={`list-item${selectedId === p.id ? " selected" : ""}${
-            p.status === "CONTACTED" ? " is-contacted" : ""
+            p.status === "CONTACTED" && listTab !== "FAVORITE" ? " is-contacted" : ""
           }`}
           onClick={() => {
             setSelectedId(p.id);
@@ -933,48 +996,82 @@ export default function ProspectsPage() {
           </div>
         </div>
 
-        <div className="list-pane-tabs" role="tablist" aria-label="Lista de clientes">
-          {hasActiveFilters ? (
-            <button
-              type="button"
-              role="tab"
-              aria-selected={listTab === "FILTER"}
-              className={`list-pane-tab tab-filter${
-                listTab === "FILTER" ? " active" : ""
-              }`}
-              onClick={() => setListTab("FILTER")}
-            >
-              Filtro
-              <span className="count">{prospects.length}</span>
-            </button>
-          ) : null}
-          <button
-            type="button"
-            role="tab"
-            aria-selected={listTab === "FAVORITE"}
-            className={`list-pane-tab tab-favorite${
-              listTab === "FAVORITE" ? " active" : ""
-            }`}
-            onClick={() => setListTab("FAVORITE")}
+        <div
+          className={`list-pane-tabs-wrap${tabsOverflow ? " is-overflow" : ""}${
+            tabsAtStart ? " at-start" : ""
+          }${tabsAtEnd ? " at-end" : ""}`}
+        >
+          <div
+            ref={tabsRef}
+            className="list-pane-tabs"
+            role="tablist"
+            aria-label="Lista de clientes"
+            onScroll={syncTabsScroll}
           >
-            Favoritos
-            <span className="count">{favoriteCount}</span>
-          </button>
-          {LIST_TABS.map((tab) => (
+            {hasActiveFilters ? (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={listTab === "FILTER"}
+                className={`list-pane-tab tab-filter${
+                  listTab === "FILTER" ? " active" : ""
+                }`}
+                onClick={() => setListTab("FILTER")}
+              >
+                Filtro
+                <span className="count">{prospects.length}</span>
+              </button>
+            ) : null}
             <button
-              key={tab.value}
               type="button"
               role="tab"
-              aria-selected={listTab === tab.value}
-              className={`list-pane-tab${tab.className ? ` ${tab.className}` : ""}${
-                listTab === tab.value ? " active" : ""
+              aria-selected={listTab === "FAVORITE"}
+              className={`list-pane-tab tab-favorite${
+                listTab === "FAVORITE" ? " active" : ""
               }`}
-              onClick={() => setListTab(tab.value)}
+              onClick={() => setListTab("FAVORITE")}
             >
-              {tab.label}
-              <span className="count">{tabCounts[tab.value]}</span>
+              Favoritos
+              <span className="count">{favoriteCount}</span>
             </button>
-          ))}
+            {LIST_TABS.map((tab) => (
+              <button
+                key={tab.value}
+                type="button"
+                role="tab"
+                aria-selected={listTab === tab.value}
+                className={`list-pane-tab${tab.className ? ` ${tab.className}` : ""}${
+                  listTab === tab.value ? " active" : ""
+                }`}
+                onClick={() => setListTab(tab.value)}
+              >
+                {tab.label}
+                <span className="count">{tabCounts[tab.value]}</span>
+              </button>
+            ))}
+          </div>
+          {tabsOverflow ? (
+            <div
+              className="list-pane-tabs-scroll"
+              aria-hidden="true"
+              onPointerDown={(e) => {
+                e.currentTarget.setPointerCapture(e.pointerId);
+                seekTabsScroll(e.clientX, e.currentTarget);
+              }}
+              onPointerMove={(e) => {
+                if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+                seekTabsScroll(e.clientX, e.currentTarget);
+              }}
+            >
+              <div
+                className="list-pane-tabs-scroll-thumb"
+                style={{
+                  width: `${tabsThumb.width}%`,
+                  marginLeft: `${tabsThumb.x}%`,
+                }}
+              />
+            </div>
+          ) : null}
         </div>
 
         <div className="list-items">
