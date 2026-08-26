@@ -210,7 +210,24 @@ export type SentEmail = {
   body: string;
   replyTo: string | null;
   providerId: string | null;
+  deliveryStatus: EmailDeliveryStatus;
+  deliveredAt: string | null;
   createdAt: string;
+};
+
+export type EmailDeliveryStatus =
+  | "SENT"
+  | "DELIVERED"
+  | "BOUNCED"
+  | "FAILED"
+  | "COMPLAINED";
+
+export const EMAIL_DELIVERY_STATUS_LABELS: Record<EmailDeliveryStatus, string> = {
+  SENT: "Enviado",
+  DELIVERED: "Entregue",
+  BOUNCED: "Bounce",
+  FAILED: "Falhou",
+  COMPLAINED: "Spam",
 };
 
 export type MailDirection = "sent" | "received";
@@ -234,6 +251,8 @@ export type MailboxItem = {
   body: string;
   replyTo: string | null;
   providerId: string | null;
+  deliveryStatus: EmailDeliveryStatus | null;
+  deliveredAt: string | null;
   createdAt: string;
 };
 

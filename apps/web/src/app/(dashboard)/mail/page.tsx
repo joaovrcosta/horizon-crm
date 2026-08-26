@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import type { MailFolder, MailboxItem, MailboxPage } from "@horizon/shared";
+import type {
+  EmailDeliveryStatus,
+  MailFolder,
+  MailboxItem,
+  MailboxPage,
+} from "@horizon/shared";
+import { EMAIL_DELIVERY_STATUS_LABELS } from "@horizon/shared";
 import { useComposeEmail } from "@/components/compose-email";
 import {
   IconChevronLeft,
@@ -54,6 +60,11 @@ function formatPager(page: number, pageSize: number, total: number) {
   const start = (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, total);
   return `${start}–${end} de ${total.toLocaleString("pt-BR")}`;
+}
+
+function deliveryLabel(status: EmailDeliveryStatus | null | undefined) {
+  if (!status || status === "SENT") return null;
+  return EMAIL_DELIVERY_STATUS_LABELS[status];
 }
 
 function contactLabel(email: MailboxItem) {
@@ -291,6 +302,13 @@ export default function MailPage() {
               {inbound ? (
                 <span className="mail-reply-badge">Resposta</span>
               ) : null}
+              {!inbound && deliveryLabel(selected.deliveryStatus) ? (
+                <span
+                  className={`mail-delivery-badge mail-delivery-${selected.deliveryStatus?.toLowerCase()}`}
+                >
+                  {deliveryLabel(selected.deliveryStatus)}
+                </span>
+              ) : null}
               {selected.subject}
             </h1>
             <div className="mail-reading-meta">
@@ -315,6 +333,9 @@ export default function MailPage() {
                         Enviado por {selected.userName}
                         {selected.replyTo
                           ? ` · Reply-To ${selected.replyTo}`
+                          : ""}
+                        {selected.deliveredAt
+                          ? ` · Entregue ${formatDateTime(selected.deliveredAt)}`
                           : ""}
                       </span>
                     </>
@@ -498,6 +519,13 @@ export default function MailPage() {
                   <span className="mail-col-to" title={contactEmail(item)}>
                     {isReply ? (
                       <span className="mail-reply-badge">Resposta</span>
+                    ) : null}
+                    {!isReply && deliveryLabel(item.deliveryStatus) ? (
+                      <span
+                        className={`mail-delivery-badge mail-delivery-${item.deliveryStatus?.toLowerCase()}`}
+                      >
+                        {deliveryLabel(item.deliveryStatus)}
+                      </span>
                     ) : null}
                     {contactLabel(item)}
                   </span>

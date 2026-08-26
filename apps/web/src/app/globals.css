@@ -3677,7 +3677,37 @@ html[data-theme="light"] .compose-footer {
   line-height: 1.4;
 }
 
-.mail-reading-header h1 .mail-reply-badge {
+.mail-delivery-badge {
+  display: inline-block;
+  margin-right: 0.45rem;
+  padding: 0.08rem 0.42rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: 1px;
+  line-height: 1.4;
+}
+
+.mail-delivery-delivered {
+  background: color-mix(in srgb, var(--success) 18%, var(--surface));
+  color: var(--success);
+}
+
+.mail-delivery-bounced,
+.mail-delivery-failed {
+  background: color-mix(in srgb, var(--danger) 18%, var(--surface));
+  color: var(--danger);
+}
+
+.mail-delivery-complained {
+  background: color-mix(in srgb, #f59e0b 18%, var(--surface));
+  color: #fbbf24;
+}
+
+.mail-reading-header h1 .mail-reply-badge,
+.mail-reading-header h1 .mail-delivery-badge {
   margin-right: 0.55rem;
   vertical-align: 0.15em;
 }

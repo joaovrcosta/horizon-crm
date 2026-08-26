@@ -31,6 +31,14 @@ enum ActivityType {
   OTHER
 }
 
+enum EmailDeliveryStatus {
+  SENT
+  DELIVERED
+  BOUNCED
+  FAILED
+  COMPLAINED
+}
+
 enum ProspectTagKind {
   CATEGORY
   LANGUAGE
@@ -183,24 +191,28 @@ model ProspectActivity {
 }
 
 model SentEmail {
-  id         String          @id @default(cuid())
-  userId     String
-  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  prospectId String?
-  prospect   Prospect?       @relation(fields: [prospectId], references: [id], onDelete: SetNull)
-  toEmail    String
-  toName     String?
-  subject    String
-  body       String
-  replyTo    String?
-  providerId String?
-  createdAt  DateTime        @default(now())
-  replies    ReceivedEmail[]
+  id                 String              @id @default(cuid())
+  userId             String
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prospectId         String?
+  prospect           Prospect?           @relation(fields: [prospectId], references: [id], onDelete: SetNull)
+  toEmail            String
+  toName             String?
+  subject            String
+  body               String
+  replyTo            String?
+  providerId         String?
+  deliveryStatus     EmailDeliveryStatus @default(SENT)
+  deliveredAt        DateTime?
+  deliveryUpdatedAt  DateTime?
+  createdAt          DateTime            @default(now())
+  replies            ReceivedEmail[]
 
   @@index([userId, createdAt])
   @@index([prospectId])
   @@index([createdAt])
   @@index([toEmail])
+  @@index([providerId])
 }
 
 model ReceivedEmail {

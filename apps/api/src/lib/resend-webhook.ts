@@ -19,12 +19,33 @@ function signaturesMatch(expected: string, candidate: string): boolean {
   return timingSafeEqual(a, b);
 }
 
+function webhookSecrets(): string[] {
+  return [
+    process.env.RESEND_WEBHOOK_SECRET,
+    process.env.RESEND_WEBHOOK_SECRET_LEGACY,
+  ]
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value));
+}
+
+function expectedSignature(
+  secret: string,
+  svixId: string,
+  svixTimestamp: string,
+  rawBody: string,
+): string {
+  const secretBytes = Buffer.from(secret.replace(/^whsec_/, ""), "base64");
+  return createHmac("sha256", secretBytes)
+    .update(`${svixId}.${svixTimestamp}.${rawBody}`)
+    .digest("base64");
+}
+
 /** Verifica a assinatura Svix do webhook Resend e devolve o JSON. */
 export function verifyResendWebhook(
   rawBody: string,
   headers: Record<string, string | string[] | undefined>,
 ): unknown {
-  const secret = process.env.RESEND_WEBHOOK_SECRET?.trim();
+  const secrets = webhookSecrets();
   const svixId =
     headerValue(headers, "svix-id") || headerValue(headers, "webhook-id");
   const svixTimestamp =
@@ -34,7 +55,7 @@ export function verifyResendWebhook(
     headerValue(headers, "svix-signature") ||
     headerValue(headers, "webhook-signature");
 
-  if (!secret) {
+  if (secrets.length === 0) {
     if (process.env.NODE_ENV === "production") {
       throw new AppError(401, "RESEND_WEBHOOK_SECRET não configurado");
     }
@@ -56,11 +77,6 @@ export function verifyResendWebhook(
     throw new AppError(400, "Webhook expirado");
   }
 
-  const secretBytes = Buffer.from(secret.replace(/^whsec_/, ""), "base64");
-  const expected = createHmac("sha256", secretBytes)
-    .update(`${svixId}.${svixTimestamp}.${rawBody}`)
-    .digest("base64");
-
   const candidates = svixSignature
     .split(/\s+/)
     .map((part) => {
@@ -69,7 +85,17 @@ export function verifyResendWebhook(
     })
     .filter(Boolean);
 
-  if (!candidates.some((candidate) => signaturesMatch(expected, candidate))) {
+  const valid = secrets.some((secret) => {
+    const expected = expectedSignature(
+      secret,
+      svixId,
+      svixTimestamp,
+      rawBody,
+    );
+    return candidates.some((candidate) => signaturesMatch(expected, candidate));
+  });
+
+  if (!valid) {
     throw new AppError(401, "Assinatura do webhook inválida");
   }
 

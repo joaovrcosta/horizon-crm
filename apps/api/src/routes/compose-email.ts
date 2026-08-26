@@ -84,6 +84,8 @@ function serializeSentEmail(row: {
   body: string;
   replyTo: string | null;
   providerId: string | null;
+  deliveryStatus: SentEmail["deliveryStatus"];
+  deliveredAt: Date | null;
   createdAt: Date;
   user: { name: string };
   prospect: { name: string } | null;
@@ -100,6 +102,8 @@ function serializeSentEmail(row: {
     body: row.body,
     replyTo: row.replyTo,
     providerId: row.providerId,
+    deliveryStatus: row.deliveryStatus,
+    deliveredAt: row.deliveredAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -134,6 +138,8 @@ function serializeMailboxFromSent(row: {
   body: string;
   replyTo: string | null;
   providerId: string | null;
+  deliveryStatus: NonNullable<MailboxItem["deliveryStatus"]>;
+  deliveredAt: Date | null;
   createdAt: Date;
   user: { name: string };
   prospect: { name: string } | null;
@@ -155,6 +161,8 @@ function serializeMailboxFromSent(row: {
     body: row.body,
     replyTo: row.replyTo,
     providerId: row.providerId,
+    deliveryStatus: row.deliveryStatus,
+    deliveredAt: row.deliveredAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -192,6 +200,8 @@ function serializeMailboxFromReceived(row: {
     body: row.body,
     replyTo: row.toEmail,
     providerId: row.providerId,
+    deliveryStatus: null,
+    deliveredAt: null,
     createdAt: row.createdAt.toISOString(),
   };
 }
