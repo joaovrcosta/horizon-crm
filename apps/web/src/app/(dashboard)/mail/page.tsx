@@ -24,6 +24,7 @@ import { MailListSkeleton, MailSkeleton } from "@/components/skeleton";
 import { apiFetch } from "@/lib/api-client";
 import { htmlToPlainText, prepareEmailMessageHtml } from "@/lib/email-body";
 import { formatDateTime } from "@/lib/prospect-utils";
+import { notifyMailUnreadRefresh } from "@/hooks/use-mail-unread-count";
 
 const PAGE_SIZE = 50;
 
@@ -205,6 +206,7 @@ export default function MailPage() {
       (prev ?? []).map((item) => (item.id === id ? { ...item, unread: false } : item)),
     );
     setUnreadCount((prev) => Math.max(0, prev - 1));
+    notifyMailUnreadRefresh();
   }
 
   function openEmail(item: MailboxItem) {
@@ -246,6 +248,7 @@ export default function MailPage() {
       if (selectedId && unique.includes(selectedId)) setSelectedId(null);
       setSelectedIds(new Set());
       await load();
+      notifyMailUnreadRefresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao excluir");
     } finally {

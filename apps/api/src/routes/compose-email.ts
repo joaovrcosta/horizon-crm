@@ -461,6 +461,21 @@ router.get("/", async (req, res, next) => {
   }
 });
 
+/** GET /emails/unread-count — respostas não lidas (badge da sidebar) */
+router.get("/unread-count", async (_req, res, next) => {
+  try {
+    const unreadCount = await prisma.receivedEmail
+      .count({ where: { readAt: null } })
+      .catch((error) => {
+        if (isMissingMailboxTable(error)) return 0;
+        throw error;
+      });
+    res.json({ data: { unreadCount } } satisfies ApiResponse<{ unreadCount: number }>);
+  } catch (error) {
+    next(error);
+  }
+});
+
 /** GET /emails/:id */
 router.get("/:id", async (req, res, next) => {
   try {

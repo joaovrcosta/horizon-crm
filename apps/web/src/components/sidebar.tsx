@@ -22,6 +22,7 @@ import {
   IconX,
 } from "@/components/icons";
 import { useSidebarCollapsed } from "@/hooks/use-sidebar-collapsed";
+import { useMailUnreadCount } from "@/hooks/use-mail-unread-count";
 
 const NAV = [
   { href: "/", label: "Dashboard", icon: IconDashboard, exact: true },
@@ -44,6 +45,7 @@ export function Sidebar({
   const { user, logout, can } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { collapsed, setCollapsed } = useSidebarCollapsed(initialCollapsed);
+  const mailUnreadCount = useMailUnreadCount();
 
   function toggleCollapsed() {
     setCollapsed(!collapsed);
@@ -109,18 +111,36 @@ export function Sidebar({
               ? pathname === item.href
               : pathname.startsWith(item.href);
           const Icon = item.icon;
+          const showMailBadge =
+            item.href === "/mail" && mailUnreadCount > 0;
+          const badgeLabel =
+            mailUnreadCount > 99 ? "99+" : String(mailUnreadCount);
           return (
             <Link
               key={item.href}
               href={item.href}
               className={`nav-item${active ? " active" : ""}`}
-              title={item.label}
+              title={
+                showMailBadge
+                  ? `${item.label} (${badgeLabel} novos)`
+                  : item.label
+              }
               onClick={onMobileClose}
             >
               <span className="nav-icon">
                 <Icon size={17} />
+                {showMailBadge && collapsed ? (
+                  <span className="nav-badge nav-badge-dot" aria-hidden>
+                    {badgeLabel}
+                  </span>
+                ) : null}
               </span>
               <span className="nav-label">{item.label}</span>
+              {showMailBadge && !collapsed ? (
+                <span className="nav-badge" aria-label={`${badgeLabel} novos`}>
+                  {badgeLabel}
+                </span>
+              ) : null}
             </Link>
           );
         })}
