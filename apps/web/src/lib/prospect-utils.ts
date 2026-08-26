@@ -27,17 +27,28 @@ export function fromDatetimeLocalValue(value: string) {
   return date.toISOString();
 }
 
+const APP_TIMEZONE = "America/Sao_Paulo";
+
+function calendarDayInAppTz(date: Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
 export function isOverdue(iso: string | null | undefined, status: string) {
   if (!iso || status === "WON" || status === "LOST") return false;
   const date = new Date(iso);
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  return date < start;
+  if (Number.isNaN(date.getTime())) return false;
+  return calendarDayInAppTz(date) < calendarDayInAppTz(new Date());
 }
 
 export function formatDateTime(iso: string | null | undefined) {
   if (!iso) return "—";
   return new Date(iso).toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
     dateStyle: "short",
     timeStyle: "short",
   });

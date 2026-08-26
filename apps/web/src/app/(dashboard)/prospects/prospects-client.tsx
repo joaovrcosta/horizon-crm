@@ -58,7 +58,6 @@ import {
   IconEdit,
   IconFilter,
   IconMail,
-  IconMapPin,
   IconMinus,
   IconPhone,
   IconPlus,
@@ -1431,7 +1430,13 @@ export default function ProspectsPage() {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  <IconMapPin size={16} />
+                  <img
+                    src="/google-map-icon.svg"
+                    alt=""
+                    width={16}
+                    height={16}
+                    className="btn-maps-icon"
+                  />
                   Abrir Maps
                 </a>
               ) : null}

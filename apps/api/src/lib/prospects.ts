@@ -172,41 +172,111 @@ export function normalizeWebsiteUrl(value?: string | null) {
   return normalized;
 }
 
+/** Fuso oficial do produto (Brasília). Evita virar o dia às 21h no Brasil quando o servidor roda em UTC. */
+export const APP_TIMEZONE = "America/Sao_Paulo";
+
+type ZonedParts = {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  second: number;
+};
+
+function getZonedParts(date: Date, timeZone = APP_TIMEZONE): ZonedParts {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(date);
+
+  const map: Record<string, string> = {};
+  for (const part of parts) {
+    if (part.type !== "literal") map[part.type] = part.value;
+  }
+
+  const hour = Number(map.hour);
+  return {
+    year: Number(map.year),
+    month: Number(map.month),
+    day: Number(map.day),
+    hour: hour === 24 ? 0 : hour,
+    minute: Number(map.minute),
+    second: Number(map.second),
+  };
+}
+
+/** Converte horário de parede em `timeZone` para um Instant UTC. */
+function zonedDateTimeToUtc(
+  year: number,
+  month: number,
+  day: number,
+  hour = 0,
+  minute = 0,
+  second = 0,
+  ms = 0,
+  timeZone = APP_TIMEZONE,
+) {
+  const desiredAsUtc = Date.UTC(year, month - 1, day, hour, minute, second, ms);
+  let utcMs = desiredAsUtc;
+
+  for (let i = 0; i < 3; i++) {
+    const parts = getZonedParts(new Date(utcMs), timeZone);
+    const asUtc = Date.UTC(
+      parts.year,
+      parts.month - 1,
+      parts.day,
+      parts.hour,
+      parts.minute,
+      parts.second,
+      ms,
+    );
+    utcMs += desiredAsUtc - asUtc;
+  }
+
+  return new Date(utcMs);
+}
+
 export function startOfToday() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
+  const parts = getZonedParts(new Date());
+  return zonedDateTimeToUtc(parts.year, parts.month, parts.day, 0, 0, 0, 0);
 }
 
 export function endOfToday() {
-  const d = new Date();
-  d.setHours(23, 59, 59, 999);
-  return d;
+  const parts = getZonedParts(new Date());
+  return zonedDateTimeToUtc(parts.year, parts.month, parts.day, 23, 59, 59, 999);
 }
 
 export function startOfMonth() {
-  const d = new Date();
-  d.setDate(1);
-  d.setHours(0, 0, 0, 0);
-  return d;
+  const parts = getZonedParts(new Date());
+  return zonedDateTimeToUtc(parts.year, parts.month, 1, 0, 0, 0, 0);
 }
 
 export function startOfLastMonth() {
-  const d = startOfMonth();
-  d.setMonth(d.getMonth() - 1);
-  return d;
+  const parts = getZonedParts(new Date());
+  let year = parts.year;
+  let month = parts.month - 1;
+  if (month < 1) {
+    month = 12;
+    year -= 1;
+  }
+  return zonedDateTimeToUtc(year, month, 1, 0, 0, 0, 0);
 }
 
 export function endOfDay(date: Date) {
-  const d = new Date(date);
-  d.setHours(23, 59, 59, 999);
-  return d;
+  const parts = getZonedParts(date);
+  return zonedDateTimeToUtc(parts.year, parts.month, parts.day, 23, 59, 59, 999);
 }
 
 export function startOfDay(date: Date) {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  return d;
+  const parts = getZonedParts(date);
+  return zonedDateTimeToUtc(parts.year, parts.month, parts.day, 0, 0, 0, 0);
 }
 
 export function parseDateOnly(value: string) {
@@ -214,13 +284,12 @@ export function parseDateOnly(value: string) {
   if (!match) {
     throw new AppError(400, "Data inválida. Use o formato AAAA-MM-DD.");
   }
-  const [, year, month, day] = match;
-  const parsed = new Date(Number(year), Number(month) - 1, Number(day));
-  if (
-    parsed.getFullYear() !== Number(year) ||
-    parsed.getMonth() !== Number(month) - 1 ||
-    parsed.getDate() !== Number(day)
-  ) {
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const parsed = zonedDateTimeToUtc(year, month, day, 12, 0, 0, 0);
+  const parts = getZonedParts(parsed);
+  if (parts.year !== year || parts.month !== month || parts.day !== day) {
     throw new AppError(400, "Data inválida.");
   }
   return parsed;
@@ -282,9 +351,8 @@ export function resolveStatsPeriod(params: {
 }
 
 export function daysAgo(days: number) {
-  const d = startOfToday();
-  d.setDate(d.getDate() - days);
-  return d;
+  const start = startOfToday();
+  return startOfDay(new Date(start.getTime() - days * 24 * 60 * 60 * 1000));
 }
 
 export function percentChange(current: number, previous: number) {
