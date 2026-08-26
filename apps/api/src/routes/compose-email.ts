@@ -140,6 +140,7 @@ function serializeMailboxFromSent(row: {
   providerId: string | null;
   deliveryStatus: NonNullable<MailboxItem["deliveryStatus"]>;
   deliveredAt: Date | null;
+  readAt: Date | null;
   createdAt: Date;
   user: { name: string };
   prospect: { name: string } | null;
@@ -148,7 +149,7 @@ function serializeMailboxFromSent(row: {
     id: mailboxId("sent", row.id),
     direction: "sent",
     isReply: false,
-    unread: false,
+    unread: !row.readAt,
     userId: row.userId,
     userName: row.user.name,
     prospectId: row.prospectId,
@@ -511,19 +512,26 @@ router.get("/:id", async (req, res, next) => {
   }
 });
 
-/** PATCH /emails/:id/read — marca resposta como lida */
+/** PATCH /emails/:id/read — marca e-mail como lido */
 router.patch("/:id/read", async (req, res, next) => {
   try {
     const rawId = z.string().min(1).parse(req.params.id);
     const parsed = parseMailboxId(rawId);
-    if (parsed?.direction !== "received") {
-      res.json({ data: { ok: true } } satisfies ApiResponse<{ ok: boolean }>);
-      return;
+    const now = new Date();
+
+    if (parsed?.direction === "received") {
+      await prisma.receivedEmail.updateMany({
+        where: { id: parsed.id, readAt: null },
+        data: { readAt: now },
+      });
+    } else {
+      const sentId = parsed?.id ?? rawId;
+      await prisma.sentEmail.updateMany({
+        where: { id: sentId, readAt: null },
+        data: { readAt: now },
+      });
     }
-    await prisma.receivedEmail.updateMany({
-      where: { id: parsed.id, readAt: null },
-      data: { readAt: new Date() },
-    });
+
     res.json({ data: { ok: true } } satisfies ApiResponse<{ ok: boolean }>);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -556,7 +564,7 @@ async function deleteMailboxIds(ids: string[]) {
   return { sent: sentIds.length, received: receivedIds.length };
 }
 
-/** POST /emails/bulk-read — marca respostas selecionadas como lidas */
+/** POST /emails/bulk-read — marca e-mails selecionados como lidos */
 router.post("/bulk-read", async (req, res, next) => {
   try {
     const body = z
@@ -566,22 +574,34 @@ router.post("/bulk-read", async (req, res, next) => {
       .parse(req.body);
 
     const receivedIds: string[] = [];
+    const sentIds: string[] = [];
     for (const raw of body.ids) {
       const parsed = parseMailboxId(raw);
       if (parsed?.direction === "received") receivedIds.push(parsed.id);
+      else sentIds.push(parsed?.id ?? raw);
     }
 
-    let updated = 0;
-    if (receivedIds.length) {
-      const result = await prisma.receivedEmail.updateMany({
-        where: { id: { in: receivedIds }, readAt: null },
-        data: { readAt: new Date() },
-      });
-      updated = result.count;
-    }
+    const now = new Date();
+    const [receivedResult, sentResult] = await Promise.all([
+      receivedIds.length
+        ? prisma.receivedEmail.updateMany({
+            where: { id: { in: receivedIds }, readAt: null },
+            data: { readAt: now },
+          })
+        : Promise.resolve({ count: 0 }),
+      sentIds.length
+        ? prisma.sentEmail.updateMany({
+            where: { id: { in: sentIds }, readAt: null },
+            data: { readAt: now },
+          })
+        : Promise.resolve({ count: 0 }),
+    ]);
 
     res.json({
-      data: { ok: true, updated },
+      data: {
+        ok: true,
+        updated: receivedResult.count + sentResult.count,
+      },
     } satisfies ApiResponse<{ ok: boolean; updated: number }>);
   } catch (error) {
     if (error instanceof z.ZodError) {

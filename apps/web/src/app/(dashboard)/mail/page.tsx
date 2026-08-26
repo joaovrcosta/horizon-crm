@@ -124,7 +124,6 @@ export default function MailPage() {
   const [appliedQuery, setAppliedQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [openedIds, setOpenedIds] = useState<Set<string>>(() => new Set());
   const [deleting, setDeleting] = useState(false);
   const [markingRead, setMarkingRead] = useState(false);
 
@@ -204,31 +203,26 @@ export default function MailPage() {
     });
   }
 
-  function markLocalRead(id: string) {
+  function markLocalRead(id: string, isReceived: boolean) {
     setEmails((prev) =>
       (prev ?? []).map((item) => (item.id === id ? { ...item, unread: false } : item)),
     );
-    setUnreadCount((prev) => Math.max(0, prev - 1));
-    notifyMailUnreadRefresh();
+    if (isReceived) {
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+      notifyMailUnreadRefresh();
+    }
   }
 
   function openEmail(item: MailboxItem) {
     setSelectedId(item.id);
-    setOpenedIds((prev) => {
-      if (prev.has(item.id)) return prev;
-      const next = new Set(prev);
-      next.add(item.id);
-      return next;
+    if (!item.unread) return;
+    markLocalRead(item.id, item.direction === "received");
+    void apiFetch<{ ok: boolean }>(
+      `/emails/${encodeURIComponent(item.id)}/read`,
+      { method: "PATCH" },
+    ).catch(() => {
+      /* a lista recarrega no próximo load */
     });
-    if (item.direction === "received" && item.unread) {
-      markLocalRead(item.id);
-      void apiFetch<{ ok: boolean }>(
-        `/emails/${encodeURIComponent(item.id)}/read`,
-        { method: "PATCH" },
-      ).catch(() => {
-        /* a lista recarrega no próximo load */
-      });
-    }
   }
 
   function startReply(item: MailboxItem) {
@@ -245,31 +239,30 @@ export default function MailPage() {
     if (unique.length === 0 || markingRead) return;
 
     const selectedItems = emails.filter((item) => unique.includes(item.id));
-    const unreadReceived = selectedItems.filter(
-      (item) => item.direction === "received" && item.unread,
-    );
+    const unreadItems = selectedItems.filter((item) => item.unread);
+    if (unreadItems.length === 0) {
+      setSelectedIds(new Set());
+      return;
+    }
+
+    const unreadReceivedCount = unreadItems.filter(
+      (item) => item.direction === "received",
+    ).length;
 
     setMarkingRead(true);
     try {
-      if (unreadReceived.length > 0) {
-        await apiFetch<{ ok: boolean; updated: number }>("/emails/bulk-read", {
-          method: "POST",
-          body: { ids: unreadReceived.map((item) => item.id) },
-        });
-      }
+      await apiFetch<{ ok: boolean; updated: number }>("/emails/bulk-read", {
+        method: "POST",
+        body: { ids: unreadItems.map((item) => item.id) },
+      });
 
       setEmails((prev) =>
         prev.map((item) =>
           unique.includes(item.id) ? { ...item, unread: false } : item,
         ),
       );
-      setOpenedIds((prev) => {
-        const next = new Set(prev);
-        for (const id of unique) next.add(id);
-        return next;
-      });
-      if (unreadReceived.length > 0) {
-        setUnreadCount((prev) => Math.max(0, prev - unreadReceived.length));
+      if (unreadReceivedCount > 0) {
+        setUnreadCount((prev) => Math.max(0, prev - unreadReceivedCount));
         notifyMailUnreadRefresh();
       }
       setSelectedIds(new Set());
@@ -568,17 +561,13 @@ export default function MailPage() {
             emails.map((item) => {
               const checked = selectedIds.has(item.id);
               const isReply = item.direction === "received";
-              const isUnread =
-                item.direction === "received"
-                  ? item.unread
-                  : !openedIds.has(item.id);
               return (
                 <div
                   key={item.id}
                   role="listitem"
                   className={`mail-tr${checked ? " checked" : ""}${
                     isReply ? " mail-tr-reply" : ""
-                  }${isUnread ? " mail-tr-unread" : " mail-tr-read"}`}
+                  }${item.unread ? " mail-tr-unread" : " mail-tr-read"}`}
                   onClick={() => openEmail(item)}
                 >
                   <label
