@@ -3689,29 +3689,21 @@ html[data-theme="light"] .compose-footer {
   font-weight: 700;
 }
 
-/* Respostas já abertas ficam mais apagadas */
-.mail-tr.mail-tr-reply:not(.mail-tr-unread) {
+/* E-mails já abertos / lidos ficam mais apagados */
+.mail-tr.mail-tr-read {
   opacity: 0.58;
 }
 
-.mail-tr.mail-tr-reply:not(.mail-tr-unread) .mail-col-to,
-.mail-tr.mail-tr-reply:not(.mail-tr-unread) .mail-subject,
-.mail-tr.mail-tr-reply:not(.mail-tr-unread) .mail-snippet,
-.mail-tr.mail-tr-reply:not(.mail-tr-unread) .mail-col-date {
+.mail-tr.mail-tr-read .mail-col-to,
+.mail-tr.mail-tr-read .mail-subject,
+.mail-tr.mail-tr-read .mail-snippet,
+.mail-tr.mail-tr-read .mail-col-date {
   color: var(--text-muted);
   font-weight: 500;
 }
 
-.mail-tr.mail-tr-reply:not(.mail-tr-unread):hover {
+.mail-tr.mail-tr-read:hover {
   opacity: 0.78;
-}
-
-.mail-tr:not(.mail-tr-unread):not(.mail-tr-reply) .mail-col-to {
-  font-weight: 500;
-}
-
-.mail-tr:not(.mail-tr-unread):not(.mail-tr-reply) .mail-subject {
-  font-weight: 500;
 }
 
 .mail-reply-badge {

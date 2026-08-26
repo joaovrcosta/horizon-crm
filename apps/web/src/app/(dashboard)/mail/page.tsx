@@ -123,6 +123,7 @@ export default function MailPage() {
   const [appliedQuery, setAppliedQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [openedIds, setOpenedIds] = useState<Set<string>>(() => new Set());
   const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
@@ -211,6 +212,12 @@ export default function MailPage() {
 
   function openEmail(item: MailboxItem) {
     setSelectedId(item.id);
+    setOpenedIds((prev) => {
+      if (prev.has(item.id)) return prev;
+      const next = new Set(prev);
+      next.add(item.id);
+      return next;
+    });
     if (item.direction === "received" && item.unread) {
       markLocalRead(item.id);
       void apiFetch<{ ok: boolean }>(
@@ -501,11 +508,17 @@ export default function MailPage() {
             emails.map((item) => {
               const checked = selectedIds.has(item.id);
               const isReply = item.direction === "received";
+              const isUnread =
+                item.direction === "received"
+                  ? item.unread
+                  : !openedIds.has(item.id);
               return (
                 <div
                   key={item.id}
                   role="listitem"
-                  className={`mail-tr${checked ? " checked" : ""}${isReply ? " mail-tr-reply" : ""}${item.unread ? " mail-tr-unread" : ""}`}
+                  className={`mail-tr${checked ? " checked" : ""}${
+                    isReply ? " mail-tr-reply" : ""
+                  }${isUnread ? " mail-tr-unread" : " mail-tr-read"}`}
                   onClick={() => openEmail(item)}
                 >
                   <label
