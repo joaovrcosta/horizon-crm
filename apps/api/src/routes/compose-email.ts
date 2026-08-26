@@ -556,6 +556,42 @@ async function deleteMailboxIds(ids: string[]) {
   return { sent: sentIds.length, received: receivedIds.length };
 }
 
+/** POST /emails/bulk-read — marca respostas selecionadas como lidas */
+router.post("/bulk-read", async (req, res, next) => {
+  try {
+    const body = z
+      .object({
+        ids: z.array(z.string().min(1)).min(1).max(200),
+      })
+      .parse(req.body);
+
+    const receivedIds: string[] = [];
+    for (const raw of body.ids) {
+      const parsed = parseMailboxId(raw);
+      if (parsed?.direction === "received") receivedIds.push(parsed.id);
+    }
+
+    let updated = 0;
+    if (receivedIds.length) {
+      const result = await prisma.receivedEmail.updateMany({
+        where: { id: { in: receivedIds }, readAt: null },
+        data: { readAt: new Date() },
+      });
+      updated = result.count;
+    }
+
+    res.json({
+      data: { ok: true, updated },
+    } satisfies ApiResponse<{ ok: boolean; updated: number }>);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      next(new AppError(400, error.issues[0]?.message ?? "IDs inválidos"));
+      return;
+    }
+    next(error);
+  }
+});
+
 /** POST /emails/bulk-delete */
 router.post("/bulk-delete", async (req, res, next) => {
   try {

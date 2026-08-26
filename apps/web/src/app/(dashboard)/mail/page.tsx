@@ -11,6 +11,7 @@ import type {
 import { EMAIL_DELIVERY_STATUS_LABELS } from "@horizon/shared";
 import { useComposeEmail } from "@/components/compose-email";
 import {
+  IconCheck,
   IconChevronLeft,
   IconChevronRight,
   IconEdit,
@@ -125,6 +126,7 @@ export default function MailPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [openedIds, setOpenedIds] = useState<Set<string>>(() => new Set());
   const [deleting, setDeleting] = useState(false);
+  const [markingRead, setMarkingRead] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -236,6 +238,53 @@ export default function MailPage() {
       subject: replySubject(item.subject),
       reply: true,
     });
+  }
+
+  async function markEmailsRead(ids: string[]) {
+    const unique = [...new Set(ids)].filter(Boolean);
+    if (unique.length === 0 || markingRead) return;
+
+    const selectedItems = emails.filter((item) => unique.includes(item.id));
+    const unreadReceived = selectedItems.filter(
+      (item) => item.direction === "received" && item.unread,
+    );
+
+    setMarkingRead(true);
+    try {
+      if (unreadReceived.length > 0) {
+        await apiFetch<{ ok: boolean; updated: number }>("/emails/bulk-read", {
+          method: "POST",
+          body: { ids: unreadReceived.map((item) => item.id) },
+        });
+      }
+
+      setEmails((prev) =>
+        prev.map((item) =>
+          unique.includes(item.id) ? { ...item, unread: false } : item,
+        ),
+      );
+      setOpenedIds((prev) => {
+        const next = new Set(prev);
+        for (const id of unique) next.add(id);
+        return next;
+      });
+      if (unreadReceived.length > 0) {
+        setUnreadCount((prev) => Math.max(0, prev - unreadReceived.length));
+        notifyMailUnreadRefresh();
+      }
+      setSelectedIds(new Set());
+      toast.success(
+        unique.length === 1
+          ? "Marcado como lido."
+          : `${unique.length} e-mails marcados como lidos.`,
+      );
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Falha ao marcar como lido",
+      );
+    } finally {
+      setMarkingRead(false);
+    }
   }
 
   async function deleteEmails(ids: string[]) {
@@ -446,15 +495,26 @@ export default function MailPage() {
           </button>
         </div>
         {selectedIds.size > 0 ? (
-          <button
-            type="button"
-            className="mail-toolbar-btn"
-            disabled={deleting}
-            onClick={() => void deleteEmails([...selectedIds])}
-          >
-            <IconTrash size={15} />
-            Excluir {selectedIds.size}
-          </button>
+          <>
+            <button
+              type="button"
+              className="mail-toolbar-btn"
+              disabled={markingRead || deleting}
+              onClick={() => void markEmailsRead([...selectedIds])}
+            >
+              <IconCheck size={15} />
+              Marcar como lido
+            </button>
+            <button
+              type="button"
+              className="mail-toolbar-btn"
+              disabled={deleting || markingRead}
+              onClick={() => void deleteEmails([...selectedIds])}
+            >
+              <IconTrash size={15} />
+              Excluir {selectedIds.size}
+            </button>
+          </>
         ) : null}
         <button
           type="button"
