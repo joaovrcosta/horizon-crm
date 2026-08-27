@@ -2,10 +2,16 @@
 
 import type { DailyGoalToday } from "@horizon/shared";
 import { IconStar } from "@/components/icons";
+import { useCountUp } from "@/hooks/use-count-up";
+
+function GoalCount({ value }: { value: number }) {
+  const displayed = useCountUp(value);
+  return <>{displayed.toLocaleString("pt-BR")}</>;
+}
 
 export function DailyGoalStars({
   progress,
-  size = 18,
+  size = 14,
   className = "",
 }: {
   progress: DailyGoalToday;
@@ -17,7 +23,7 @@ export function DailyGoalStars({
   return (
     <div
       className={`daily-goal-stars ${className}`.trim()}
-      aria-label={`${progress.completed} de ${progress.target} tarefas concluídas hoje`}
+      aria-label={`${progress.completed} de ${progress.target} cadastros hoje`}
     >
       {Array.from({ length: progress.target }, (_, index) => (
         <span
@@ -32,6 +38,16 @@ export function DailyGoalStars({
   );
 }
 
+function goalHint(progress: DailyGoalToday) {
+  if (progress.reached) {
+    return "Meta alcançada hoje!";
+  }
+  if (progress.remaining === 1) {
+    return "Falta 1 cadastro para bater a meta.";
+  }
+  return `Faltam ${progress.remaining} cadastros para a meta.`;
+}
+
 export function DailyGoalWidget({
   progress,
   loading = false,
@@ -43,8 +59,8 @@ export function DailyGoalWidget({
 }) {
   if (loading && !progress) {
     return (
-      <article className={`daily-goal-card${compact ? " is-compact" : ""}`}>
-        <p className="daily-goal-loading">Carregando meta…</p>
+      <article className={`metric-card daily-goal-metric${compact ? " is-compact" : ""}`}>
+        <p className="metric-hint">Carregando meta…</p>
       </article>
     );
   }
@@ -52,34 +68,24 @@ export function DailyGoalWidget({
   if (!progress?.visible) return null;
 
   return (
-    <article className={`daily-goal-card${compact ? " is-compact" : ""}`}>
-      <div className="daily-goal-card-head">
-        <div>
-          <span className="daily-goal-label">Meta de hoje</span>
-          {!compact ? (
-            <p className="daily-goal-desc">
-              Ligações, visitas, WhatsApp e e-mails contam como tarefa.
-            </p>
-          ) : null}
-        </div>
-        <span className="daily-goal-count">
-          {progress.completed}/{progress.target}
+    <article className={`metric-card daily-goal-metric${compact ? " is-compact" : ""}`}>
+      <div className="metric-card-head">
+        <span className="metric-label">Meta de hoje</span>
+        <span className={`metric-icon${progress.reached ? " success" : ""}`}>
+          <IconStar size={16} filled={progress.reached || progress.completed > 0} />
         </span>
       </div>
 
-      <DailyGoalStars progress={progress} size={compact ? 16 : 20} />
+      <div className="metric-value-row">
+        <strong>
+          <GoalCount value={progress.completed} />
+        </strong>
+        <span className="daily-goal-target">/ {progress.target}</span>
+      </div>
 
-      <p className="daily-goal-foot">
-        {progress.reached ? (
-          <strong>Meta alcançada!</strong>
-        ) : progress.remaining === 1 ? (
-          <>Falta <strong>1</strong> tarefa para bater a meta.</>
-        ) : (
-          <>
-            Faltam <strong>{progress.remaining}</strong> tarefas para a meta.
-          </>
-        )}
-      </p>
+      <DailyGoalStars progress={progress} size={compact ? 12 : 14} />
+
+      <p className="metric-hint">{goalHint(progress)}</p>
     </article>
   );
 }

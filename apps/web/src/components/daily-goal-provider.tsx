@@ -42,10 +42,10 @@ function formatGoalToast(
   }
 
   if (goal.remaining === 1) {
-    return "Tarefa concluída! Falta 1 estrela para a meta de hoje.";
+    return "Cliente cadastrado! Falta 1 estrela para a meta de hoje.";
   }
 
-  return `Tarefa concluída! Faltam ${goal.remaining} estrelas para a meta de hoje.`;
+  return `Cliente cadastrado! Faltam ${goal.remaining} estrelas para a meta de hoje.`;
 }
 
 export function DailyGoalProvider({ children }: { children: ReactNode }) {
@@ -56,9 +56,10 @@ export function DailyGoalProvider({ children }: { children: ReactNode }) {
 
   const applyGoal = useCallback(
     (goal: DailyGoalToday, celebrate = false) => {
+      const previous = previousCompletedRef.current;
       const message =
         celebrate && goal.visible
-          ? formatGoalToast(goal, previousCompletedRef.current)
+          ? formatGoalToast(goal, previous)
           : null;
 
       previousCompletedRef.current = goal.visible ? goal.completed : 0;
@@ -84,6 +85,14 @@ export function DailyGoalProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void refreshGoal();
+  }, [refreshGoal]);
+
+  useEffect(() => {
+    function onFocus() {
+      void refreshGoal();
+    }
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
   }, [refreshGoal]);
 
   useEffect(() => {

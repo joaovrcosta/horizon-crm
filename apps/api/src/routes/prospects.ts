@@ -3,6 +3,7 @@ import { ProspectStatus } from "@prisma/client";
 import { z } from "zod";
 import { digitsOnly, getCountryFilterValues, normalizeCountryCode, type ApiResponse, type Prospect, type ProspectTag } from "@horizon/shared";
 import { AppError } from "../lib/errors";
+import { getDailyGoalProgressAfterProspectCreated } from "../lib/daily-goals";
 import { prisma } from "../lib/prisma";
 import {
   assertNoDuplicate,
@@ -384,6 +385,7 @@ router.post("/", async (req, res, next) => {
 
     res.status(201).json({
       data: serializeProspect(prospect, false),
+      dailyGoal: await getDailyGoalProgressAfterProspectCreated(req.user!.id),
     } satisfies ApiResponse<Prospect>);
   } catch (error) {
     next(error);

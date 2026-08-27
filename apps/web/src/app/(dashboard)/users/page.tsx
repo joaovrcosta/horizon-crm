@@ -197,7 +197,8 @@ export default function UsersPage() {
       {canManageGoals ? (
         <p className="users-goals-intro">
           A meta diária começa <strong>desativada</strong> para todos. Ative
-          manualmente por usuário para exibir estrelas e contagem no dashboard.
+          manualmente por usuário. Conta apenas <strong>cadastro de cliente</strong>{" "}
+          feito no dia.
         </p>
       ) : null}
 

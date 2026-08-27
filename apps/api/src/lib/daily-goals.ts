@@ -1,33 +1,54 @@
-import { ActivityType } from "@prisma/client";
 import type { DailyGoalToday } from "@horizon/shared";
 import { AppError } from "./errors";
-import { endOfDay, startOfDay } from "./prospects";
+import { endOfToday, startOfToday } from "./prospects";
 import { prisma } from "./prisma";
 
-/** Tipos de atividade que contam como tarefa concluída na meta diária. */
-export const GOAL_ACTIVITY_TYPES: ActivityType[] = [
-  ActivityType.CALL,
-  ActivityType.WHATSAPP,
-  ActivityType.VISIT,
-  ActivityType.EMAIL,
-  ActivityType.OTHER,
-];
+const PROSPECT_CREATED_NOTE = "Prospect criado";
 
-export function isGoalActivityType(type: ActivityType | string) {
-  return GOAL_ACTIVITY_TYPES.includes(type as ActivityType);
+function todayRange(now = new Date()) {
+  return {
+    gte: startOfToday(),
+    lte: endOfToday(),
+  };
 }
 
-async function countTodayGoalActivities(userId: string, now = new Date()) {
-  return prisma.prospectActivity.count({
-    where: {
-      userId,
-      type: { in: GOAL_ACTIVITY_TYPES },
-      createdAt: {
-        gte: startOfDay(now),
-        lte: endOfDay(now),
-      },
-    },
-  });
+/**
+ * Conta cadastros de cliente feitos hoje pelo usuário.
+ * Inclui retroativamente os já existentes no dia (Brasília), cruzando:
+ * - clientes que o usuário criou (`createdById`)
+ * - clientes em que é responsável (`assigneeId`)
+ * - atividades "Prospect criado" registradas hoje pelo usuário
+ */
+async function countTodayProspectCreations(userId: string, now = new Date()) {
+  const createdAt = todayRange(now);
+
+  const [createdProspects, assignedProspects, createdActivities] =
+    await Promise.all([
+      prisma.prospect.findMany({
+        where: { createdById: userId, createdAt },
+        select: { id: true },
+      }),
+      prisma.prospect.findMany({
+        where: { assigneeId: userId, createdAt },
+        select: { id: true },
+      }),
+      prisma.prospectActivity.findMany({
+        where: {
+          userId,
+          type: "NOTE",
+          content: PROSPECT_CREATED_NOTE,
+          createdAt,
+        },
+        select: { prospectId: true },
+      }),
+    ]);
+
+  const uniqueProspectIds = new Set<string>();
+  for (const row of createdProspects) uniqueProspectIds.add(row.id);
+  for (const row of assignedProspects) uniqueProspectIds.add(row.id);
+  for (const row of createdActivities) uniqueProspectIds.add(row.prospectId);
+
+  return uniqueProspectIds.size;
 }
 
 function buildProgress(
@@ -44,11 +65,10 @@ function buildProgress(
       reached: false,
     };
   }
-  const capped = Math.min(completed, target);
   return {
     visible: true,
     target,
-    completed: capped,
+    completed: Math.min(completed, target),
     remaining: Math.max(0, target - completed),
     reached: completed >= target,
   };
@@ -65,17 +85,15 @@ export async function getDailyGoalProgress(
     return buildProgress(false, 0, 0);
   }
 
-  const completed = await countTodayGoalActivities(userId, now);
+  const completed = await countTodayProspectCreations(userId, now);
   return buildProgress(true, config.targetCount, completed);
 }
 
-/** Após registrar uma atividade elegível, retorna progresso atualizado. */
-export async function getDailyGoalProgressAfterActivity(
+/** Após cadastrar um cliente, retorna progresso atualizado. */
+export async function getDailyGoalProgressAfterProspectCreated(
   userId: string,
-  activityType: ActivityType | string,
   now = new Date(),
-): Promise<DailyGoalToday | undefined> {
-  if (!isGoalActivityType(activityType)) return undefined;
+): Promise<DailyGoalToday> {
   return getDailyGoalProgress(userId, now);
 }
 
@@ -92,7 +110,7 @@ export async function listDailyGoalConfigs() {
 
   const now = new Date();
   const counts = await Promise.all(
-    users.map((user) => countTodayGoalActivities(user.id, now)),
+    users.map((user) => countTodayProspectCreations(user.id, now)),
   );
 
   return users.map((user, index) => ({
