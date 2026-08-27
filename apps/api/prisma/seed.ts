@@ -37,7 +37,7 @@ const PERMISSIONS = [
   {
     id: "perm_goals_manage",
     key: "goals:manage",
-    description: "Configurar metas diárias da equipe",
+    description: "Configurar missões diárias da equipe",
   },
 ] as const;
 

@@ -137,7 +137,7 @@ export default function UsersPage() {
 
     const targetCount = Number.parseInt(draft.targetCount, 10);
     if (draft.enabled && (!Number.isFinite(targetCount) || targetCount < 1)) {
-      setError("Com a meta ativada, informe um número inteiro maior que zero.");
+      setError("Com a missão ativada, informe um número inteiro maior que zero.");
       return;
     }
 
@@ -160,7 +160,7 @@ export default function UsersPage() {
         [userId]: goalDraftFromConfig(updated),
       }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao salvar meta");
+      setError(err instanceof Error ? err.message : "Erro ao salvar missão");
     } finally {
       setSavingGoalId(null);
     }
@@ -196,7 +196,7 @@ export default function UsersPage() {
 
       {canManageGoals ? (
         <p className="users-goals-intro">
-          A meta diária começa <strong>desativada</strong> para todos. Ative
+          A missão diária começa <strong>desativada</strong> para todos. Ative
           manualmente por usuário. Conta apenas <strong>cadastro de cliente</strong>{" "}
           feito no dia.
         </p>
@@ -213,8 +213,8 @@ export default function UsersPage() {
               <th>Papel</th>
               {canManageGoals ? (
                 <>
-                  <th>Meta diária</th>
-                  <th>Meta/dia</th>
+                  <th>Missão diária</th>
+                  <th>Missão/dia</th>
                   <th>Hoje</th>
                 </>
               ) : null}
@@ -246,8 +246,8 @@ export default function UsersPage() {
                             aria-checked={draft.enabled}
                             aria-label={
                               draft.enabled
-                                ? `Desativar meta diária de ${u.name}`
-                                : `Ativar meta diária de ${u.name}`
+                                ? `Desativar missão diária de ${u.name}`
+                                : `Ativar missão diária de ${u.name}`
                             }
                             className={`toggle-switch${draft.enabled ? " is-on" : ""}`}
                             disabled={isSavingGoal}
@@ -273,7 +273,7 @@ export default function UsersPage() {
                           title={
                             draft.enabled
                               ? "Tarefas por dia"
-                              : "Ative a meta diária para editar"
+                              : "Ative a missão diária para editar"
                           }
                           onChange={(e) =>
                             setGoalDrafts((prev) => ({
@@ -302,7 +302,7 @@ export default function UsersPage() {
                         disabled={!draft.enabled || isSavingGoal}
                         onClick={() => void saveGoalConfig(u.id)}
                       >
-                        {isSavingGoal ? "Salvando…" : "Salvar meta"}
+                        {isSavingGoal ? "Salvando…" : "Salvar missão"}
                       </button>
                     ) : null}
                     {can("users:delete") && u.id !== user?.id ? (
@@ -328,7 +328,7 @@ export default function UsersPage() {
           <form className="modal" onSubmit={createUser}>
             <h2>Novo usuário</h2>
             <p className="text-muted">
-              Novos usuários são criados como Membro, com meta diária desativada.
+              Novos usuários são criados como Membro, com missão diária desativada.
               Promoção a administrador só via banco de dados.
             </p>
             <div className="form-grid">

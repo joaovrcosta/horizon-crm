@@ -40,12 +40,12 @@ export function DailyGoalStars({
 
 function goalHint(progress: DailyGoalToday) {
   if (progress.reached) {
-    return "Meta alcançada hoje!";
+    return "Missão concluída hoje!";
   }
   if (progress.remaining === 1) {
-    return "Falta 1 cadastro para bater a meta.";
+    return "Falta 1 cadastro para concluir a missão.";
   }
-  return `Faltam ${progress.remaining} cadastros para a meta.`;
+  return `Faltam ${progress.remaining} cadastros para a missão.`;
 }
 
 export function DailyGoalWidget({
@@ -60,7 +60,7 @@ export function DailyGoalWidget({
   if (loading && !progress) {
     return (
       <article className={`metric-card daily-goal-metric${compact ? " is-compact" : ""}`}>
-        <p className="metric-hint">Carregando meta…</p>
+        <p className="metric-hint">Carregando missão…</p>
       </article>
     );
   }
@@ -70,7 +70,7 @@ export function DailyGoalWidget({
   return (
     <article className={`metric-card daily-goal-metric${compact ? " is-compact" : ""}`}>
       <div className="metric-card-head">
-        <span className="metric-label">Meta de hoje</span>
+        <span className="metric-label">Missão de hoje</span>
         <span
           className={`metric-icon daily-goal-head-icon${
             progress.reached || progress.completed > 0 ? " is-active" : ""

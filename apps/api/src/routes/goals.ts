@@ -14,7 +14,7 @@ const router = Router();
 
 router.use(requireAuth);
 
-/** GET /goals/me/today — progresso da meta diária do usuário logado */
+/** GET /goals/me/today — progresso da missão diária do usuário logado */
 router.get("/me/today", async (req, res, next) => {
   try {
     const progress = await getDailyGoalProgress(req.user!.id);
@@ -45,13 +45,13 @@ router.get(
 const upsertSchema = z.object({
   targetCount: z
     .number()
-    .int("A meta deve ser um número inteiro.")
-    .min(1, "A meta deve ser pelo menos 1.")
-    .max(100, "A meta deve ser no máximo 100."),
+    .int("A missão deve ser um número inteiro.")
+    .min(1, "A missão deve ser pelo menos 1.")
+    .max(100, "A missão deve ser no máximo 100."),
   enabled: z.boolean(),
 });
 
-/** PUT /goals/users/:userId — define meta e visibilidade por usuário (admin) */
+/** PUT /goals/users/:userId — define missão e visibilidade por usuário (admin) */
 router.put(
   "/users/:userId",
   requirePermission("goals:manage"),

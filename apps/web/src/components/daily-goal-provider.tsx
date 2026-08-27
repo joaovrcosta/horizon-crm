@@ -38,14 +38,14 @@ function formatGoalToast(
   if (goal.completed <= previousCompleted) return null;
 
   if (goal.reached) {
-    return "Meta diária alcançada! Parabéns!";
+    return "Missão diária concluída! Parabéns!";
   }
 
   if (goal.remaining === 1) {
-    return "Cliente cadastrado! Falta 1 estrela para a meta de hoje.";
+    return "Cliente cadastrado! Falta 1 estrela para a missão de hoje.";
   }
 
-  return `Cliente cadastrado! Faltam ${goal.remaining} estrelas para a meta de hoje.`;
+  return `Cliente cadastrado! Faltam ${goal.remaining} estrelas para a missão de hoje.`;
 }
 
 export function DailyGoalProvider({ children }: { children: ReactNode }) {
