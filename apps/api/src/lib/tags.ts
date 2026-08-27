@@ -167,6 +167,20 @@ export async function renameTag(id: string, rawName: string) {
           },
         });
       }
+
+      const prompts = await tx.prompt.findMany({
+        where: { languages: { has: oldName } },
+      });
+      for (const prompt of prompts) {
+        await tx.prompt.update({
+          where: { id: prompt.id },
+          data: {
+            languages: prompt.languages.map((item) =>
+              item.toLowerCase() === oldName.toLowerCase() ? name : item,
+            ),
+          },
+        });
+      }
     }
 
     return updated;
@@ -209,6 +223,20 @@ export async function deleteTag(id: string) {
           where: { id: prospect.id },
           data: {
             languages: prospect.languages.filter(
+              (item) => item.toLowerCase() !== tag.name.toLowerCase(),
+            ),
+          },
+        });
+      }
+
+      const prompts = await tx.prompt.findMany({
+        where: { languages: { has: tag.name } },
+      });
+      for (const prompt of prompts) {
+        await tx.prompt.update({
+          where: { id: prompt.id },
+          data: {
+            languages: prompt.languages.filter(
               (item) => item.toLowerCase() !== tag.name.toLowerCase(),
             ),
           },

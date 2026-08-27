@@ -153,6 +153,7 @@ export type Prompt = {
   title: string;
   content: string;
   tags: string[];
+  languages: string[];
   visibility: PromptVisibility;
   createdById: string;
   createdAt: string;

@@ -39,7 +39,7 @@ import {
 } from "@/lib/email-body";
 import {
   applyPromptTemplate,
-  filterPromptsByCategory,
+  filterPromptsForProspect,
   formatDateTime,
   fromDatetimeLocalValue,
   isOverdue,
@@ -724,16 +724,20 @@ export default function ProspectsPage() {
     return counts;
   }, [prospects]);
 
-  const categoryPrompts = useMemo(
-    () => filterPromptsByCategory(prompts, selected?.category),
-    [prompts, selected?.category],
+  const filteredPrompts = useMemo(
+    () =>
+      filterPromptsForProspect(prompts, {
+        category: selected?.category,
+        languages: selected?.languages,
+      }),
+    [prompts, selected?.category, selected?.languages],
   );
 
   useEffect(() => {
-    if (emailPromptId && !categoryPrompts.some((p) => p.id === emailPromptId)) {
+    if (emailPromptId && !filteredPrompts.some((p) => p.id === emailPromptId)) {
       setEmailPromptId("");
     }
-  }, [categoryPrompts, emailPromptId]);
+  }, [filteredPrompts, emailPromptId]);
 
   const favoriteCount = useMemo(
     () => prospects.filter((p) => p.favorited).length,
@@ -1805,25 +1809,34 @@ export default function ProspectsPage() {
                 <option value="">
                   {loadingPrompts
                     ? "Carregando…"
-                    : selected?.category && categoryPrompts.length === 0
-                      ? `Nenhum template para ${selected.category}`
+                    : (selected?.category || (selected?.languages?.length ?? 0) > 0) &&
+                        filteredPrompts.length === 0
+                      ? "Nenhum template para este cliente"
                       : "Nenhum (escrever manualmente)"}
                 </option>
-                {categoryPrompts.map((p) => (
+                {filteredPrompts.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.title}
                     {p.visibility === "PUBLIC" ? " · público" : ""}
                   </option>
                 ))}
               </select>
-              {selected?.category ? (
+              {selected?.category || (selected?.languages?.length ?? 0) > 0 ? (
                 <p className="field-hint">
-                  Mostrando templates da categoria {selected.category}.
+                  {selected?.category
+                    ? `Categoria: ${selected.category}.`
+                    : null}
+                  {selected?.category && (selected?.languages?.length ?? 0) > 0
+                    ? " "
+                    : null}
+                  {(selected?.languages?.length ?? 0) > 0
+                    ? `Idioma(s): ${selected!.languages!.join(", ")}.`
+                    : null}
                 </p>
               ) : (
                 <p className="field-hint">
-                  Cliente sem categoria — todos os templates. Defina a
-                  categoria no cadastro para filtrar.
+                  Cliente sem categoria ou idioma — todos os templates. Defina
+                  no cadastro para filtrar.
                 </p>
               )}
             </div>

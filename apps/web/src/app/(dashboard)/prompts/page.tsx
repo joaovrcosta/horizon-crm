@@ -31,6 +31,7 @@ const emptyForm = {
   title: "",
   content: "",
   tags: [] as string[],
+  languages: [] as string[],
   visibility: "PRIVATE" as PromptVisibility,
 };
 
@@ -94,6 +95,7 @@ export default function PromptsPage() {
       title: prompt.title,
       content: plainTextToEditorHtml(prompt.content),
       tags: prompt.tags,
+      languages: prompt.languages ?? [],
       visibility: prompt.visibility,
     });
     setShowModal(true);
@@ -112,6 +114,7 @@ export default function PromptsPage() {
         title: form.title,
         content: form.content.trim(),
         tags: form.tags,
+        languages: form.languages,
         visibility: form.visibility,
       };
 
@@ -221,6 +224,11 @@ export default function PromptsPage() {
                   {prompt.tags.map((tag) => (
                     <span key={tag} className="tag tag-chip-category">
                       {tag}
+                    </span>
+                  ))}
+                  {(prompt.languages ?? []).map((language) => (
+                    <span key={language} className="tag tag-chip-language">
+                      {language}
                     </span>
                   ))}
                 </div>
@@ -352,6 +360,20 @@ export default function PromptsPage() {
                 O template só aparece no e-mail de clientes com uma dessas
                 categorias. Sem categoria, ele não entra no filtro. Gerencie o
                 catálogo em Configurações.
+              </p>
+              <label>
+                Idiomas
+                <TagInput
+                  kind="LANGUAGE"
+                  value={form.languages}
+                  onChange={(languages) => setForm({ ...form, languages })}
+                  placeholder="Português, Inglês…"
+                />
+              </label>
+              <p className="field-hint">
+                O template só aparece para clientes que falam um desses idiomas.
+                Sem idioma marcado, ele não entra no filtro. Gerencie o catálogo
+                em Configurações.
               </p>
             </div>
             <div className="modal-actions">

@@ -37,7 +37,7 @@ import {
   composeEmailSchema,
   type ComposeEmailValues,
 } from "@/lib/compose-email-schema";
-import { applyPromptTemplate, filterPromptsByCategory } from "@/lib/prospect-utils";
+import { applyPromptTemplate, filterPromptsForProspect } from "@/lib/prospect-utils";
 
 type ComposeOpenOptions = {
   to?: string;
@@ -46,6 +46,7 @@ type ComposeOpenOptions = {
   body?: string;
   reply?: boolean;
   category?: string | null;
+  languages?: string[];
 };
 
 type ComposeContextValue = {
@@ -58,6 +59,7 @@ type RecipientSuggestion = {
   name: string;
   email: string;
   category: string | null;
+  languages: string[];
 };
 
 const ComposeContext = createContext<ComposeContextValue | null>(null);
@@ -79,6 +81,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
   const [toName, setToName] = useState("");
   const [toQuery, setToQuery] = useState("");
   const [toCategory, setToCategory] = useState<string | null>(null);
+  const [toLanguages, setToLanguages] = useState<string[]>([]);
   const [suggestions, setSuggestions] = useState<RecipientSuggestion[]>([]);
   const [searchingRecipients, setSearchingRecipients] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -124,6 +127,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
     setToName("");
     setToQuery("");
     setToCategory(null);
+    setToLanguages([]);
     setIsReply(false);
     skipIntroRef.current = false;
   }, [reset]);
@@ -135,6 +139,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
       setToName(opts?.name ?? "");
       setToQuery(opts?.to ?? opts?.name ?? "");
       setToCategory(opts?.category ?? null);
+      setToLanguages(opts?.languages ?? []);
       setSuggestions([]);
       setShowSuggestions(false);
       reset({
@@ -230,6 +235,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
               name: p.name,
               email: p.email!.trim(),
               category: p.category,
+              languages: p.languages ?? [],
             }));
           setSuggestions(withEmail);
           setShowSuggestions(true);
@@ -264,6 +270,7 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
     setToName(recipient.name);
     setToQuery(recipient.email);
     setToCategory(recipient.category);
+    setToLanguages(recipient.languages);
     setSuggestions([]);
     setShowSuggestions(false);
   }
@@ -276,18 +283,23 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
     });
     if (!value.includes("@")) setToName("");
     setToCategory(null);
+    setToLanguages([]);
   }
 
-  const categoryPrompts = useMemo(
-    () => filterPromptsByCategory(prompts, toCategory),
-    [prompts, toCategory],
+  const filteredPrompts = useMemo(
+    () =>
+      filterPromptsForProspect(prompts, {
+        category: toCategory,
+        languages: toLanguages,
+      }),
+    [prompts, toCategory, toLanguages],
   );
 
   useEffect(() => {
-    if (promptId && !categoryPrompts.some((item) => item.id === promptId)) {
+    if (promptId && !filteredPrompts.some((item) => item.id === promptId)) {
       setPromptId("");
     }
-  }, [categoryPrompts, promptId]);
+  }, [filteredPrompts, promptId]);
 
   function applyTemplate(id: string) {
     setPromptId(id);
@@ -493,20 +505,25 @@ export function ComposeEmailProvider({ children }: { children: ReactNode }) {
                 <option value="">
                   {loadingPrompts
                     ? "Carregando…"
-                    : toCategory && categoryPrompts.length === 0
-                      ? `Nenhum template para ${toCategory}`
+                    : (toCategory || toLanguages.length > 0) &&
+                        filteredPrompts.length === 0
+                      ? "Nenhum template para este cliente"
                       : "Nenhum (escrever manualmente)"}
                 </option>
-                {categoryPrompts.map((p) => (
+                {filteredPrompts.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.title}
                     {p.visibility === "PUBLIC" ? " · público" : ""}
                   </option>
                 ))}
               </select>
-              {toCategory ? (
+              {toCategory || toLanguages.length > 0 ? (
                 <p className="field-hint">
-                  Mostrando templates da categoria {toCategory}.
+                  {toCategory ? `Categoria: ${toCategory}.` : null}
+                  {toCategory && toLanguages.length > 0 ? " " : null}
+                  {toLanguages.length > 0
+                    ? `Idioma(s): ${toLanguages.join(", ")}.`
+                    : null}
                 </p>
               ) : null}
             </div>

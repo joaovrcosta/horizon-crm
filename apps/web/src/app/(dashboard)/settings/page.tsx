@@ -419,7 +419,7 @@ export default function SettingsPage() {
         <section className="panel settings-tags">
           <h2>Categorias e idiomas</h2>
           <p className="panel-desc">
-            Catálogo compartilhado da equipe. As categorias também definem
+            Catálogo compartilhado da equipe. Categorias e idiomas definem
             quais templates de e-mail aparecem para cada cliente.
           </p>
           <div className="settings-tags-grid">
@@ -432,7 +432,7 @@ export default function SettingsPage() {
             <SettingsTagCatalog
               kind="LANGUAGE"
               title="Idiomas"
-              description="Ex.: Português, Inglês, Espanhol. Usados no cadastro e nos filtros de clientes."
+              description="Ex.: Português, Inglês, Espanhol. Vincule o mesmo nome no template para filtrar o e-mail."
               placeholder="Novo idioma"
             />
           </div>

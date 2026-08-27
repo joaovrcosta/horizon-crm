@@ -246,6 +246,7 @@ model Prompt {
   title       String
   content     String
   tags        String[]         @default([])
+  languages   String[]         @default([])
   visibility  PromptVisibility @default(PRIVATE)
   createdById String
   createdBy   User             @relation(fields: [createdById], references: [id], onDelete: Cascade)

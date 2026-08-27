@@ -124,6 +124,32 @@ export function filterPromptsByCategory<T extends { tags: string[] }>(
   );
 }
 
+export function filterPromptsByLanguage<T extends { languages: string[] }>(
+  prompts: T[],
+  languages: string[] | null | undefined,
+): T[] {
+  if (!languages?.length) return prompts;
+  const keys = new Set(languages.map(normalizeTagKey));
+  return prompts.filter((prompt) =>
+    prompt.languages.some((lang) => keys.has(normalizeTagKey(lang))),
+  );
+}
+
+export function filterPromptsForProspect<
+  T extends { tags: string[]; languages: string[] },
+>(
+  prompts: T[],
+  opts: {
+    category?: string | null;
+    languages?: string[] | null;
+  },
+): T[] {
+  return filterPromptsByLanguage(
+    filterPromptsByCategory(prompts, opts.category),
+    opts.languages,
+  );
+}
+
 export function toMailtoLink(opts: {
   to: string;
   subject?: string;

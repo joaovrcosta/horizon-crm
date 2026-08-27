@@ -16,6 +16,7 @@ const createSchema = z.object({
   title: z.string().min(1).max(200),
   content: z.string().min(1).max(50000),
   tags: z.array(z.string().max(80)).max(20).optional(),
+  languages: z.array(z.string().max(80)).max(20).optional(),
   visibility: visibilityEnum.default("PRIVATE"),
 });
 
@@ -26,6 +27,7 @@ function serializePrompt(p: {
   title: string;
   content: string;
   tags: string[];
+  languages: string[];
   visibility: PromptVisibility;
   createdById: string;
   createdAt: Date;
@@ -36,6 +38,7 @@ function serializePrompt(p: {
     title: p.title,
     content: p.content,
     tags: p.tags,
+    languages: p.languages,
     visibility: p.visibility,
     createdById: p.createdById,
     createdAt: p.createdAt.toISOString(),
@@ -155,11 +158,15 @@ router.post("/", async (req, res, next) => {
     const tags = body.tags
       ? await resolveTagNames("CATEGORY", body.tags)
       : [];
+    const languages = body.languages
+      ? await resolveTagNames("LANGUAGE", body.languages)
+      : [];
     const prompt = await prisma.prompt.create({
       data: {
         title: body.title,
         content: body.content,
         tags,
+        languages,
         visibility: body.visibility as PromptVisibility,
         createdById: req.user!.id,
       },
@@ -193,6 +200,9 @@ router.patch("/:id", async (req, res, next) => {
         ...(body.content !== undefined ? { content: body.content } : {}),
         ...(body.tags !== undefined
           ? { tags: await resolveTagNames("CATEGORY", body.tags) }
+          : {}),
+        ...(body.languages !== undefined
+          ? { languages: await resolveTagNames("LANGUAGE", body.languages) }
           : {}),
         ...(body.visibility !== undefined
           ? { visibility: body.visibility as PromptVisibility }
