@@ -13,11 +13,20 @@ type GoalDraft = {
   enabled: boolean;
 };
 
+function goalDraftFromConfig(config: DailyGoalConfigUser): GoalDraft {
+  return {
+    targetCount: String(config.targetCount),
+    enabled: config.enabled,
+  };
+}
+
 export default function UsersPage() {
   const { user, can } = useAuth();
   const router = useRouter();
   const [users, setUsers] = useState<UserPublic[]>([]);
-  const [goalConfigs, setGoalConfigs] = useState<DailyGoalConfigUser[]>([]);
+  const [goalByUserId, setGoalByUserId] = useState<
+    Record<string, DailyGoalConfigUser>
+  >({});
   const [goalDrafts, setGoalDrafts] = useState<Record<string, GoalDraft>>({});
   const [savingGoalId, setSavingGoalId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,14 +47,14 @@ export default function UsersPage() {
     }
   }, [user, can, router]);
 
-  function syncGoalDrafts(configs: DailyGoalConfigUser[]) {
+  function applyGoalConfigs(configs: DailyGoalConfigUser[]) {
+    const byId: Record<string, DailyGoalConfigUser> = {};
     const drafts: Record<string, GoalDraft> = {};
     for (const config of configs) {
-      drafts[config.userId] = {
-        targetCount: String(config.targetCount),
-        enabled: config.enabled,
-      };
+      byId[config.userId] = config;
+      drafts[config.userId] = goalDraftFromConfig(config);
     }
+    setGoalByUserId(byId);
     setGoalDrafts(drafts);
   }
 
@@ -65,8 +74,7 @@ export default function UsersPage() {
       const [usersData, configsData] = await Promise.all(requests);
       setUsers(usersData);
       if (configsData) {
-        setGoalConfigs(configsData);
-        syncGoalDrafts(configsData);
+        applyGoalConfigs(configsData);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao carregar");
@@ -108,19 +116,28 @@ export default function UsersPage() {
     try {
       await apiFetch<void>(`/users/${target.id}`, { method: "DELETE" });
       setUsers((prev) => prev.filter((u) => u.id !== target.id));
-      setGoalConfigs((prev) => prev.filter((item) => item.userId !== target.id));
+      setGoalByUserId((prev) => {
+        const next = { ...prev };
+        delete next[target.id];
+        return next;
+      });
+      setGoalDrafts((prev) => {
+        const next = { ...prev };
+        delete next[target.id];
+        return next;
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao remover");
     }
   }
 
-  async function saveGoalConfig(userId: string) {
-    const draft = goalDrafts[userId];
+  async function saveGoalConfig(userId: string, draftOverride?: GoalDraft) {
+    const draft = draftOverride ?? goalDrafts[userId];
     if (!draft) return;
 
     const targetCount = Number.parseInt(draft.targetCount, 10);
-    if (!Number.isFinite(targetCount) || targetCount < 1) {
-      setError("A meta diária deve ser um número inteiro maior que zero.");
+    if (draft.enabled && (!Number.isFinite(targetCount) || targetCount < 1)) {
+      setError("Com a meta ativada, informe um número inteiro maior que zero.");
       return;
     }
 
@@ -132,22 +149,31 @@ export default function UsersPage() {
         {
           method: "PUT",
           body: {
-            targetCount,
+            targetCount: draft.enabled ? targetCount : Number.parseInt(draft.targetCount, 10) || 5,
             enabled: draft.enabled,
           },
         },
       );
-      setGoalConfigs((prev) =>
-        prev.map((item) => (item.userId === userId ? updated : item)),
-      );
-      syncGoalDrafts(
-        goalConfigs.map((item) => (item.userId === userId ? updated : item)),
-      );
+      setGoalByUserId((prev) => ({ ...prev, [userId]: updated }));
+      setGoalDrafts((prev) => ({
+        ...prev,
+        [userId]: goalDraftFromConfig(updated),
+      }));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao salvar meta");
     } finally {
       setSavingGoalId(null);
     }
+  }
+
+  async function toggleGoalEnabled(userId: string) {
+    const draft = goalDrafts[userId] ?? {
+      targetCount: "5",
+      enabled: false,
+    };
+    const nextDraft = { ...draft, enabled: !draft.enabled };
+    setGoalDrafts((prev) => ({ ...prev, [userId]: nextDraft }));
+    await saveGoalConfig(userId, nextDraft);
   }
 
   if (!can("users:read")) {
@@ -168,137 +194,141 @@ export default function UsersPage() {
         </button>
       </div>
 
+      {canManageGoals ? (
+        <p className="users-goals-intro">
+          A meta diária começa <strong>desativada</strong> para todos. Ative
+          manualmente por usuário para exibir estrelas e contagem no dashboard.
+        </p>
+      ) : null}
+
       {error ? <p className="form-error">{error}</p> : null}
 
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Nome</th>
-            <th>Email</th>
-            <th>Papel</th>
-            <th>Criado em</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((u) => (
-            <tr key={u.id}>
-              <td>{u.name}</td>
-              <td>{u.email}</td>
-              <td>{u.role.name}</td>
-              <td>{new Date(u.createdAt).toLocaleDateString("pt-BR")}</td>
-              <td>
-                {can("users:delete") && u.id !== user?.id ? (
-                  <button
-                    className="btn btn-danger"
-                    type="button"
-                    onClick={() => void removeUser(u)}
-                  >
-                    <IconTrash size={16} />
-                    Remover
-                  </button>
-                ) : null}
-              </td>
+      <div className="table-wrap">
+        <table className="table users-table">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Email</th>
+              <th>Papel</th>
+              {canManageGoals ? (
+                <>
+                  <th>Meta diária</th>
+                  <th>Meta/dia</th>
+                  <th>Hoje</th>
+                </>
+              ) : null}
+              <th>Criado em</th>
+              <th />
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {users.map((u) => {
+              const config = goalByUserId[u.id];
+              const draft = goalDrafts[u.id] ?? {
+                targetCount: String(config?.targetCount ?? 5),
+                enabled: config?.enabled ?? false,
+              };
+              const isSavingGoal = savingGoalId === u.id;
 
-      {canManageGoals ? (
-        <section className="panel users-goals-panel">
-          <h2>Metas diárias</h2>
-          <p className="panel-desc">
-            Defina quantas tarefas cada pessoa deve concluir por dia e escolha
-            para quem a meta aparece. Contam ligações, WhatsApp, visitas,
-            e-mails e outras atividades registradas.
-          </p>
-          <table className="table users-goals-table">
-            <thead>
-              <tr>
-                <th>Usuário</th>
-                <th>Meta/dia</th>
-                <th>Mostrar meta</th>
-                <th>Hoje</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {goalConfigs.map((config) => {
-                const draft = goalDrafts[config.userId] ?? {
-                  targetCount: String(config.targetCount),
-                  enabled: config.enabled,
-                };
-                return (
-                  <tr key={config.userId}>
-                    <td>
-                      <strong>{config.userName}</strong>
-                      <span className="users-goals-email">{config.userEmail}</span>
-                    </td>
-                    <td>
-                      <input
-                        className="users-goals-target"
-                        type="number"
-                        min={1}
-                        max={100}
-                        value={draft.targetCount}
-                        onChange={(e) =>
-                          setGoalDrafts((prev) => ({
-                            ...prev,
-                            [config.userId]: {
-                              ...draft,
-                              targetCount: e.target.value,
-                            },
-                          }))
-                        }
-                      />
-                    </td>
-                    <td>
-                      <label className="users-goals-toggle">
+              return (
+                <tr key={u.id}>
+                  <td>{u.name}</td>
+                  <td>{u.email}</td>
+                  <td>{u.role.name}</td>
+                  {canManageGoals ? (
+                    <>
+                      <td>
+                        <div className="users-goal-activate">
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={draft.enabled}
+                            aria-label={
+                              draft.enabled
+                                ? `Desativar meta diária de ${u.name}`
+                                : `Ativar meta diária de ${u.name}`
+                            }
+                            className={`toggle-switch${draft.enabled ? " is-on" : ""}`}
+                            disabled={isSavingGoal}
+                            onClick={() => void toggleGoalEnabled(u.id)}
+                          >
+                            <span className="toggle-switch-thumb" />
+                          </button>
+                          <span
+                            className={`users-goal-status${draft.enabled ? " is-active" : ""}`}
+                          >
+                            {draft.enabled ? "Ativada" : "Desativada"}
+                          </span>
+                        </div>
+                      </td>
+                      <td>
                         <input
-                          type="checkbox"
-                          checked={draft.enabled}
+                          className="users-goals-target"
+                          type="number"
+                          min={1}
+                          max={100}
+                          disabled={!draft.enabled || isSavingGoal}
+                          value={draft.targetCount}
+                          title={
+                            draft.enabled
+                              ? "Tarefas por dia"
+                              : "Ative a meta diária para editar"
+                          }
                           onChange={(e) =>
                             setGoalDrafts((prev) => ({
                               ...prev,
-                              [config.userId]: {
+                              [u.id]: {
                                 ...draft,
-                                enabled: e.target.checked,
+                                targetCount: e.target.value,
                               },
                             }))
                           }
                         />
-                        {draft.enabled ? "Ativa" : "Oculta"}
-                      </label>
-                    </td>
-                    <td>
-                      {config.enabled
-                        ? `${config.completedToday}/${config.targetCount}`
-                        : "—"}
-                    </td>
-                    <td>
+                      </td>
+                      <td>
+                        {draft.enabled && config
+                          ? `${config.completedToday}/${config.targetCount}`
+                          : "—"}
+                      </td>
+                    </>
+                  ) : null}
+                  <td>{new Date(u.createdAt).toLocaleDateString("pt-BR")}</td>
+                  <td className="users-row-actions">
+                    {canManageGoals ? (
                       <button
                         className="btn btn-secondary"
                         type="button"
-                        disabled={savingGoalId === config.userId}
-                        onClick={() => void saveGoalConfig(config.userId)}
+                        disabled={!draft.enabled || isSavingGoal}
+                        onClick={() => void saveGoalConfig(u.id)}
                       >
-                        {savingGoalId === config.userId ? "Salvando…" : "Salvar"}
+                        {isSavingGoal ? "Salvando…" : "Salvar meta"}
                       </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </section>
-      ) : null}
+                    ) : null}
+                    {can("users:delete") && u.id !== user?.id ? (
+                      <button
+                        className="btn btn-danger"
+                        type="button"
+                        onClick={() => void removeUser(u)}
+                      >
+                        <IconTrash size={16} />
+                        Remover
+                      </button>
+                    ) : null}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
       {showModal ? (
         <div className="modal-backdrop">
           <form className="modal" onSubmit={createUser}>
             <h2>Novo usuário</h2>
             <p className="text-muted">
-              Novos usuários são criados como Membro. Promoção a administrador só via banco de dados.
+              Novos usuários são criados como Membro, com meta diária desativada.
+              Promoção a administrador só via banco de dados.
             </p>
             <div className="form-grid">
               <label>
