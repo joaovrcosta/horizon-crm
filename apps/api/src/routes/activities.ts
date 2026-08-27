@@ -2,6 +2,7 @@ import { Router } from "express";
 import { ActivityType } from "@prisma/client";
 import { z } from "zod";
 import type { ApiResponse, ProspectActivity } from "@horizon/shared";
+import { getDailyGoalProgressAfterActivity } from "../lib/daily-goals";
 import { AppError } from "../lib/errors";
 import { prisma } from "../lib/prisma";
 import { requireAuth } from "../middleware/auth";
@@ -103,8 +104,14 @@ router.post("/", async (req, res, next) => {
       include: { user: { select: { name: true } } },
     });
 
+    const dailyGoal = await getDailyGoalProgressAfterActivity(
+      req.user!.id,
+      activity.type,
+    );
+
     res.status(201).json({
       data: serialize(activity),
+      ...(dailyGoal ? { dailyGoal } : {}),
     } satisfies ApiResponse<ProspectActivity>);
   } catch (error) {
     next(error);

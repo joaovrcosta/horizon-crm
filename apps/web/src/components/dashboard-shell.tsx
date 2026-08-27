@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AuthGuard } from "@/components/auth-guard";
 import { ComposeEmailProvider } from "@/components/compose-email";
+import { DailyGoalProvider } from "@/components/daily-goal-provider";
 import { Sidebar } from "@/components/sidebar";
 import { IconMenu } from "@/components/icons";
 import { pageTitleFromPathname } from "@/lib/page-title";
@@ -55,7 +56,8 @@ export function DashboardShell({
 
   return (
     <AuthGuard initialSidebarCollapsed={initialSidebarCollapsed}>
-      <ComposeEmailProvider>
+      <DailyGoalProvider>
+        <ComposeEmailProvider>
         <div className={`dashboard${mobileNavOpen ? " mobile-nav-open" : ""}`}>
           <header className="mobile-topbar">
             <button
@@ -92,7 +94,8 @@ export function DashboardShell({
           />
           <div className="dashboard-main">{children}</div>
         </div>
-      </ComposeEmailProvider>
+        </ComposeEmailProvider>
+      </DailyGoalProvider>
     </AuthGuard>
   );
 }

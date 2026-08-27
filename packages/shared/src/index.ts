@@ -4,9 +4,27 @@ export type HealthStatus = {
   timestamp: string;
 };
 
+export type DailyGoalToday = {
+  visible: boolean;
+  target: number;
+  completed: number;
+  remaining: number;
+  reached: boolean;
+};
+
+export type DailyGoalConfigUser = {
+  userId: string;
+  userName: string;
+  userEmail: string;
+  targetCount: number;
+  enabled: boolean;
+  completedToday: number;
+};
+
 export type ApiResponse<T> = {
   data: T;
   message?: string;
+  dailyGoal?: DailyGoalToday;
 };
 
 export type ApiError = {

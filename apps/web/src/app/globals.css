@@ -4137,6 +4137,114 @@ html[data-theme="light"] .mail-search input {
   margin-bottom: 1.25rem;
 }
 
+.daily-goal-card {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 10%, var(--surface)),
+    var(--surface)
+  );
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--border));
+  border-radius: 1rem;
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.daily-goal-card.is-compact {
+  margin-bottom: 0;
+  padding: 0.85rem 0.9rem;
+  border-radius: 0.85rem;
+}
+
+.daily-goal-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.daily-goal-label {
+  display: block;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.daily-goal-desc {
+  margin: 0.25rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-subtle);
+}
+
+.daily-goal-count {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.daily-goal-stars {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.65rem;
+}
+
+.daily-goal-star {
+  color: color-mix(in srgb, var(--text-subtle) 35%, transparent);
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.daily-goal-star.is-filled {
+  color: #f59e0b;
+}
+
+.daily-goal-foot {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-subtle);
+}
+
+.daily-goal-foot strong {
+  color: var(--text);
+}
+
+.daily-goal-loading {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-subtle);
+}
+
+.sidebar-daily-goal {
+  padding: 0 0.75rem 0.75rem;
+}
+
+.users-goals-panel {
+  margin-top: 1.5rem;
+}
+
+.users-goals-table td {
+  vertical-align: middle;
+}
+
+.users-goals-email {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--text-subtle);
+}
+
+.users-goals-target {
+  width: 5rem;
+}
+
+.users-goals-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.85rem;
+}
+
 .metric-card {
   background: var(--surface);
   border: 1px solid var(--border);

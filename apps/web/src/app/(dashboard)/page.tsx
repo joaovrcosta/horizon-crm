@@ -18,6 +18,8 @@ import {
   IconUsers,
 } from "@/components/icons";
 import { DashboardSkeleton } from "@/components/skeleton";
+import { DailyGoalWidget } from "@/components/daily-goal-widget";
+import { useDailyGoal } from "@/components/daily-goal-provider";
 import { StatusChart } from "@/components/status-chart";
 import { useCountUp } from "@/hooks/use-count-up";
 
@@ -72,6 +74,7 @@ function buildStatsPath(
 }
 
 export default function DashboardPage() {
+  const { progress: dailyGoal, loading: dailyGoalLoading } = useDailyGoal();
   const [stats, setStats] = useState<ProspectStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -140,6 +143,8 @@ export default function DashboardPage() {
 
       {stats ? (
         <>
+          <DailyGoalWidget progress={dailyGoal} loading={dailyGoalLoading} />
+
           <div className={`metric-grid${loading ? " is-loading" : ""}`}>
             <article className="metric-card">
               <div className="metric-card-head">

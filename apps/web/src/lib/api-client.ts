@@ -2,6 +2,7 @@ import type {
   ApiResponse,
   AuthLoginResponse,
   AuthSession,
+  DailyGoalToday,
 } from "@horizon/shared";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
@@ -11,6 +12,13 @@ const REFRESH_BUFFER_MS = 2 * 60 * 1000;
 let accessToken: string | null = null;
 let refreshPromise: Promise<boolean> | null = null;
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+let dailyGoalHandler: ((goal: DailyGoalToday) => void) | null = null;
+
+export function setDailyGoalHandler(
+  handler: ((goal: DailyGoalToday) => void) | null,
+) {
+  dailyGoalHandler = handler;
+}
 
 function loadStoredToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -176,7 +184,12 @@ export async function apiFetch<T>(
     throw new Error(message);
   }
 
-  return (json as ApiResponse<T>).data;
+  const payload = json as ApiResponse<T>;
+  if (payload.dailyGoal && dailyGoalHandler) {
+    dailyGoalHandler(payload.dailyGoal);
+  }
+
+  return payload.data;
 }
 
 export async function loginRequest(email: string, password: string) {

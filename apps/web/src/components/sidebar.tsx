@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 import { ComposeSidebarButton } from "@/components/compose-email";
+import { DailyGoalWidget } from "@/components/daily-goal-widget";
+import { useDailyGoalOptional } from "@/components/daily-goal-provider";
 import { useTheme } from "@/components/theme-provider";
 import {
   IconChevronLeft,
@@ -46,6 +48,7 @@ export function Sidebar({
   const { theme, toggleTheme } = useTheme();
   const { collapsed, setCollapsed } = useSidebarCollapsed(initialCollapsed);
   const mailUnreadCount = useMailUnreadCount();
+  const dailyGoal = useDailyGoalOptional();
 
   function toggleCollapsed() {
     setCollapsed(!collapsed);
@@ -159,6 +162,16 @@ export function Sidebar({
           </Link>
         )}
       </nav>
+
+      {dailyGoal?.progress?.visible && !collapsed ? (
+        <div className="sidebar-daily-goal">
+          <DailyGoalWidget
+            progress={dailyGoal.progress}
+            loading={dailyGoal.loading}
+            compact
+          />
+        </div>
+      ) : null}
 
       <div className="sidebar-footer">
         <div className="sidebar-user-card" title={user?.email}>

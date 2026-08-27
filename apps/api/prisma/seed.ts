@@ -34,6 +34,11 @@ const PERMISSIONS = [
     key: "vaults:manage_all",
     description: "Gerenciar todos os cofres",
   },
+  {
+    id: "perm_goals_manage",
+    key: "goals:manage",
+    description: "Configurar metas diárias da equipe",
+  },
 ] as const;
 
 const ADMIN_PERMISSION_KEYS = PERMISSIONS.map((p) => p.key);

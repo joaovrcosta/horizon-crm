@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import type { ApiResponse, EmailSignature, ProspectActivity } from "@horizon/shared";
 import { DEFAULT_EMAIL_REPLY_TO } from "@horizon/shared";
+import { getDailyGoalProgressAfterActivity } from "../lib/daily-goals";
 import { AppError } from "../lib/errors";
 import { prisma } from "../lib/prisma";
 import {
@@ -175,6 +176,7 @@ router.post("/", async (req, res, next) => {
         }),
         statusUpdated: prospect.status === "NEW",
       },
+      dailyGoal: await getDailyGoalProgressAfterActivity(userId, "EMAIL"),
     } satisfies ApiResponse<{
       emailId: string | null;
       replyTo: string;
