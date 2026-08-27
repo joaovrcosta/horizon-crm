@@ -104,8 +104,16 @@ export default function PromptsPage() {
   async function savePrompt(event: FormEvent) {
     event.preventDefault();
     setError("");
+    if (!form.title.trim()) {
+      setError("Informe o título do template.");
+      return;
+    }
     if (!htmlToPlainText(form.content)) {
       setError("Preencha o conteúdo do template.");
+      return;
+    }
+    if (form.languages.length === 0) {
+      setError("Selecione pelo menos um idioma.");
       return;
     }
     setSaving(true);
@@ -362,7 +370,7 @@ export default function PromptsPage() {
                 catálogo em Configurações.
               </p>
               <label>
-                Idiomas
+                Idiomas *
                 <TagInput
                   kind="LANGUAGE"
                   value={form.languages}
@@ -371,9 +379,8 @@ export default function PromptsPage() {
                 />
               </label>
               <p className="field-hint">
-                O template só aparece para clientes que falam um desses idiomas.
-                Sem idioma marcado, ele não entra no filtro. Gerencie o catálogo
-                em Configurações.
+                Obrigatório. O template só aparece para clientes que falam um
+                desses idiomas. Gerencie o catálogo em Configurações.
               </p>
             </div>
             <div className="modal-actions">

@@ -13,14 +13,33 @@ const router = Router();
 const visibilityEnum = z.enum(["PUBLIC", "PRIVATE"]);
 
 const createSchema = z.object({
-  title: z.string().min(1).max(200),
-  content: z.string().min(1).max(50000),
-  tags: z.array(z.string().max(80)).max(20).optional(),
-  languages: z.array(z.string().max(80)).max(20).optional(),
+  title: z
+    .string("Informe o título do template.")
+    .trim()
+    .min(1, "Informe o título do template.")
+    .max(200, "O título deve ter no máximo 200 caracteres."),
+  content: z
+    .string("Preencha o conteúdo do template.")
+    .min(1, "Preencha o conteúdo do template.")
+    .max(50000, "O conteúdo deve ter no máximo 50.000 caracteres."),
+  tags: z
+    .array(z.string().max(80, "Cada categoria deve ter no máximo 80 caracteres."))
+    .max(20, "Selecione no máximo 20 categorias.")
+    .optional(),
+  languages: z
+    .array(z.string().max(80, "Cada idioma deve ter no máximo 80 caracteres."))
+    .min(1, "Selecione pelo menos um idioma.")
+    .max(20, "Selecione no máximo 20 idiomas."),
   visibility: visibilityEnum.default("PRIVATE"),
 });
 
-const updateSchema = createSchema.partial();
+const updateSchema = createSchema.partial().extend({
+  languages: z
+    .array(z.string().max(80, "Cada idioma deve ter no máximo 80 caracteres."))
+    .min(1, "Selecione pelo menos um idioma.")
+    .max(20, "Selecione no máximo 20 idiomas.")
+    .optional(),
+});
 
 function serializePrompt(p: {
   id: string;
@@ -158,9 +177,7 @@ router.post("/", async (req, res, next) => {
     const tags = body.tags
       ? await resolveTagNames("CATEGORY", body.tags)
       : [];
-    const languages = body.languages
-      ? await resolveTagNames("LANGUAGE", body.languages)
-      : [];
+    const languages = await resolveTagNames("LANGUAGE", body.languages);
     const prompt = await prisma.prompt.create({
       data: {
         title: body.title,
