@@ -4151,6 +4151,10 @@ html[data-theme="light"] .mail-search input {
   color: var(--text-subtle);
 }
 
+.daily-goal-metric .daily-goal-count-reached {
+  color: var(--brand);
+}
+
 .daily-goal-stars {
   display: flex;
   flex-wrap: wrap;

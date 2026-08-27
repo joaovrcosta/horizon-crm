@@ -68,7 +68,7 @@ function buildProgress(
   return {
     visible: true,
     target,
-    completed: Math.min(completed, target),
+    completed,
     remaining: Math.max(0, target - completed),
     reached: completed >= target,
   };

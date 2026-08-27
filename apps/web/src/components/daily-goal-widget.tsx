@@ -81,7 +81,7 @@ export function DailyGoalWidget({
       </div>
 
       <div className="metric-value-row">
-        <strong>
+        <strong className={progress.reached ? "daily-goal-count-reached" : undefined}>
           <GoalCount value={progress.completed} />
         </strong>
         <span className="daily-goal-target">/ {progress.target}</span>
