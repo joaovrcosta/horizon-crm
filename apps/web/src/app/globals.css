@@ -4154,17 +4154,22 @@ html[data-theme="light"] .mail-search input {
 .daily-goal-stars {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem;
-  margin: 0.5rem 0 0.35rem;
+  gap: 0.35rem;
+  margin: 0.55rem 0 0.4rem;
 }
 
 .daily-goal-star {
-  color: color-mix(in srgb, var(--text-subtle) 35%, transparent);
+  color: color-mix(in srgb, var(--brand) 22%, var(--text-subtle));
   line-height: 0;
 }
 
 .daily-goal-star.is-filled {
-  color: #f59e0b;
+  color: var(--brand);
+}
+
+.daily-goal-head-icon.is-active {
+  background: color-mix(in srgb, var(--brand) 14%, var(--surface-2));
+  color: var(--brand);
 }
 
 .sidebar-daily-goal {

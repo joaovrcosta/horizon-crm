@@ -71,7 +71,11 @@ export function DailyGoalWidget({
     <article className={`metric-card daily-goal-metric${compact ? " is-compact" : ""}`}>
       <div className="metric-card-head">
         <span className="metric-label">Meta de hoje</span>
-        <span className={`metric-icon${progress.reached ? " success" : ""}`}>
+        <span
+          className={`metric-icon daily-goal-head-icon${
+            progress.reached || progress.completed > 0 ? " is-active" : ""
+          }`}
+        >
           <IconStar size={16} filled={progress.reached || progress.completed > 0} />
         </span>
       </div>
@@ -83,7 +87,7 @@ export function DailyGoalWidget({
         <span className="daily-goal-target">/ {progress.target}</span>
       </div>
 
-      <DailyGoalStars progress={progress} size={compact ? 12 : 14} />
+      <DailyGoalStars progress={progress} size={compact ? 15 : 18} />
 
       <p className="metric-hint">{goalHint(progress)}</p>
     </article>
